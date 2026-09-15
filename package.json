@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "test": "bash tests/verify-repository.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
+    "import-skills": "bash scripts/import-skills.sh",
+    "test": "bash tests/verify-repository.sh && bash tests/test-import-skills.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
   }
 }

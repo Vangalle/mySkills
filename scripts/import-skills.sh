@@ -26,6 +26,10 @@ source_for() {
   esac
 }
 
+project_tracker_project_source() {
+  printf '%s\n' "${MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE:-$HOME/Projects/project-tracker/project-tracker}"
+}
+
 if [[ "$#" -eq 0 ]]; then
   selected=("${ALL_SKILLS[@]}")
 else
@@ -42,6 +46,31 @@ for skill in "${selected[@]}"; do
     echo "invalid source for $skill: $source_dir" >&2
     exit 3
   }
+  if [[ "$skill" == project-tracker ]]; then
+    project_source="$(project_tracker_project_source)"
+    required_project_files=(
+      package.json
+      package-lock.json
+      tsconfig.json
+      vite.config.ts
+      src/cli.ts
+      src/pi/extension.ts
+      web/index.html
+      web/tsconfig.json
+      web/vite.config.ts
+      scripts/install-skill.mjs
+    )
+    for path in "${required_project_files[@]}"; do
+      [[ -r "$project_source/$path" ]] || {
+        echo "invalid Project Tracker project source: missing $project_source/$path" >&2
+        exit 3
+      }
+    done
+    [[ -r "$ROOT/templates/project-tracker/restore-project-tracker.sh" ]] || {
+      echo 'Project Tracker restoration template is missing' >&2
+      exit 3
+    }
+  fi
 done
 
 mkdir -p "$SKILLS_ROOT"
@@ -54,6 +83,8 @@ for skill in "${selected[@]}"; do
   mkdir -p "$STAGE/new/$skill"
   rsync -a \
     --exclude='.project-tracker-source.json' \
+    --exclude='project-source/' \
+    --exclude='restore-project-tracker.sh' \
     --exclude='__pycache__/' \
     --exclude='*.pyc' \
     "$source_dir/" "$STAGE/new/$skill/"
@@ -61,6 +92,25 @@ for skill in "${selected[@]}"; do
     echo "staged snapshot missing SKILL.md: $skill" >&2
     exit 4
   }
+
+  if [[ "$skill" == project-tracker ]]; then
+    project_source="$(project_tracker_project_source)"
+    payload="$STAGE/new/$skill/project-source"
+    mkdir -p "$payload/src" "$payload/web/src" "$payload/scripts"
+    rsync -a "$project_source/src/" "$payload/src/"
+    rsync -a --exclude='*.test.ts' --exclude='*.test.tsx' \
+      "$project_source/web/src/" "$payload/web/src/"
+    for path in package.json package-lock.json tsconfig.json vite.config.ts; do
+      cp -p "$project_source/$path" "$payload/$path"
+    done
+    for path in index.html tsconfig.json vite.config.ts; do
+      cp -p "$project_source/web/$path" "$payload/web/$path"
+    done
+    cp -p "$project_source/scripts/install-skill.mjs" "$payload/scripts/install-skill.mjs"
+    mkdir -p "$STAGE/new/$skill/scripts"
+    cp -p "$ROOT/templates/project-tracker/restore-project-tracker.sh" \
+      "$STAGE/new/$skill/scripts/restore-project-tracker.sh"
+  fi
 done
 
 replaced=()

@@ -31,14 +31,30 @@ snapshot() {
 for name in explain-with-diagrams project-tracker obsidian-learning; do
   make_skill "$name"
 done
+PROJECT_SOURCE="$SOURCES/project-tracker-project"
+mkdir -p "$PROJECT_SOURCE/src/pi" "$PROJECT_SOURCE/web/src" "$PROJECT_SOURCE/scripts"
+printf 'cli\n' > "$PROJECT_SOURCE/src/cli.ts"
+printf 'extension\n' > "$PROJECT_SOURCE/src/pi/extension.ts"
+printf 'web\n' > "$PROJECT_SOURCE/web/index.html"
+printf 'main\n' > "$PROJECT_SOURCE/web/src/main.tsx"
+printf '{}\n' > "$PROJECT_SOURCE/package.json"
+printf '{}\n' > "$PROJECT_SOURCE/package-lock.json"
+printf '{}\n' > "$PROJECT_SOURCE/tsconfig.json"
+printf 'config\n' > "$PROJECT_SOURCE/vite.config.ts"
+printf '{}\n' > "$PROJECT_SOURCE/web/tsconfig.json"
+printf 'config\n' > "$PROJECT_SOURCE/web/vite.config.ts"
+printf 'installer\n' > "$PROJECT_SOURCE/scripts/install-skill.mjs"
 
 export MYSKILLS_EXPLAIN_WITH_DIAGRAMS_SOURCE="$SOURCES/explain-with-diagrams"
 export MYSKILLS_PROJECT_TRACKER_SOURCE="$SOURCES/project-tracker"
+export MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE="$PROJECT_SOURCE"
 export MYSKILLS_OBSIDIAN_LEARNING_SOURCE="$SOURCES/obsidian-learning"
 
-mkdir -p "$WORK/scripts" "$WORK/tests"
+mkdir -p "$WORK/scripts" "$WORK/tests" "$WORK/templates/project-tracker"
 cp "$ROOT/scripts/import-skills.sh" "$WORK/scripts/import-skills.sh"
 cp "$ROOT/scripts/update-skills.sh" "$WORK/scripts/update-skills.sh"
+cp "$ROOT/templates/project-tracker/restore-project-tracker.sh" \
+  "$WORK/templates/project-tracker/restore-project-tracker.sh"
 cat > "$WORK/tests/fixture-validate.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail

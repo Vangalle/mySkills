@@ -1,0 +1,86 @@
+import { useEffect, useState } from "react";
+import { api, type ProjectSummary } from "./api";
+import { ProjectOverview } from "./pages/ProjectOverview";
+import { EvidenceTimeline } from "./pages/EvidenceTimeline";
+import { SessionIndex } from "./pages/SessionIndex";
+import { Kanban } from "./pages/Kanban";
+
+type Page = "overview" | "kanban" | "timeline" | "sessions";
+
+export function App() {
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [page, setPage] = useState<Page>("overview");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .listProjects()
+      .then((result) => {
+        setProjects(result.projects);
+        setSelected((current) => current ?? result.projects[0]?.id ?? null);
+      })
+      .catch((e: Error) => setError(e.message));
+  }, []);
+
+  async function rescan() {
+    if (!selected) return;
+    await api.rescan(selected);
+    setRefreshKey((key) => key + 1);
+  }
+
+  if (error) return <p className="warn">控制台加载失败：{error}</p>;
+
+  return (
+    <div className={`app${page === "kanban" ? " app-kanban" : ""}`}>
+      <header className="topbar">
+        <h1>项目进度追踪</h1>
+        {projects.length > 0 && (
+          <select
+            aria-label="项目选择"
+            value={selected ?? ""}
+            onChange={(e) => {
+              setSelected(e.target.value);
+              setPage("overview");
+            }}
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        )}
+        <nav>
+          <button onClick={() => setPage("overview")} disabled={page === "overview"}>
+            概览
+          </button>
+          <button onClick={() => setPage("kanban")} disabled={page === "kanban"}>
+            看板
+          </button>
+          <button onClick={() => setPage("timeline")} disabled={page === "timeline"}>
+            时间线
+          </button>
+          <button onClick={() => setPage("sessions")} disabled={page === "sessions"}>
+            会话
+          </button>
+          <button onClick={rescan} title="重新扫描项目证据">
+            重新扫描
+          </button>
+        </nav>
+      </header>
+      <main>
+        {selected === null && projects.length === 0 && (
+          <p>尚未注册项目。请在启动控制台时指定一个 Git 项目。</p>
+        )}
+        {selected !== null && page === "overview" && (
+          <ProjectOverview projectId={selected} key={`${selected}-${refreshKey}`} />
+        )}
+        {selected !== null && page === "timeline" && <EvidenceTimeline projectId={selected} />}
+        {selected !== null && page === "kanban" && <Kanban projectId={selected} key={selected} />}
+        {selected !== null && page === "sessions" && <SessionIndex projectId={selected} />}
+      </main>
+    </div>
+  );
+}

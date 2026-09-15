@@ -5,8 +5,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/myskills-import-test.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 REPO="$TMP/repo"
-mkdir -p "$REPO/scripts" "$REPO/skills" "$TMP/sources"
+PROJECT_SOURCE="$TMP/sources/project-tracker-project"
+mkdir -p "$REPO/scripts" "$REPO/skills" "$REPO/templates/project-tracker" "$TMP/sources"
 cp "$ROOT/scripts/import-skills.sh" "$REPO/scripts/import-skills.sh"
+cp "$ROOT/templates/project-tracker/restore-project-tracker.sh" \
+  "$REPO/templates/project-tracker/restore-project-tracker.sh"
 
 make_skill() {
   name="$1"
@@ -37,8 +40,29 @@ printf 'private\n' > "$TMP/sources/project-tracker/.project-tracker-source.json"
 printf 'cache\n' > "$TMP/sources/project-tracker/__pycache__/cache.pyc"
 printf 'bytecode\n' > "$TMP/sources/obsidian-learning/helper.pyc"
 
+mkdir -p "$PROJECT_SOURCE/src/pi" "$PROJECT_SOURCE/web/src" "$PROJECT_SOURCE/scripts" \
+  "$PROJECT_SOURCE/tests" "$PROJECT_SOURCE/docs" "$PROJECT_SOURCE/skill/codegraph" \
+  "$PROJECT_SOURCE/dist"
+printf 'cli\n' > "$PROJECT_SOURCE/src/cli.ts"
+printf 'extension\n' > "$PROJECT_SOURCE/src/pi/extension.ts"
+printf '<div id="root"></div>\n' > "$PROJECT_SOURCE/web/index.html"
+printf 'main\n' > "$PROJECT_SOURCE/web/src/main.tsx"
+printf 'test\n' > "$PROJECT_SOURCE/web/src/App.test.tsx"
+printf '{}\n' > "$PROJECT_SOURCE/package.json"
+printf '{}\n' > "$PROJECT_SOURCE/package-lock.json"
+printf '{}\n' > "$PROJECT_SOURCE/tsconfig.json"
+printf 'config\n' > "$PROJECT_SOURCE/vite.config.ts"
+printf '{}\n' > "$PROJECT_SOURCE/web/tsconfig.json"
+printf 'config\n' > "$PROJECT_SOURCE/web/vite.config.ts"
+printf 'installer\n' > "$PROJECT_SOURCE/scripts/install-skill.mjs"
+printf 'forbidden\n' > "$PROJECT_SOURCE/tests/test.ts"
+printf 'forbidden\n' > "$PROJECT_SOURCE/docs/design.md"
+printf 'forbidden\n' > "$PROJECT_SOURCE/skill/codegraph/SKILL.md"
+printf 'forbidden\n' > "$PROJECT_SOURCE/dist/cli.js"
+
 export MYSKILLS_EXPLAIN_WITH_DIAGRAMS_SOURCE="$TMP/sources/explain-with-diagrams"
 export MYSKILLS_PROJECT_TRACKER_SOURCE="$TMP/sources/project-tracker"
+export MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE="$PROJECT_SOURCE"
 export MYSKILLS_OBSIDIAN_LEARNING_SOURCE="$TMP/sources/obsidian-learning"
 
 before="$(snapshot "$TMP/sources")"
@@ -54,11 +78,24 @@ done
 [[ ! -e "$REPO/skills/project-tracker/__pycache__" ]]
 [[ ! -e "$REPO/skills/obsidian-learning/helper.pyc" ]]
 
+PAYLOAD="$REPO/skills/project-tracker/project-source"
+for path in src/cli.ts src/pi/extension.ts web/index.html web/src/main.tsx \
+  web/tsconfig.json web/vite.config.ts package.json package-lock.json \
+  tsconfig.json vite.config.ts scripts/install-skill.mjs; do
+  [[ -f "$PAYLOAD/$path" ]] || { echo "missing payload file: $path" >&2; exit 1; }
+done
+[[ -x "$REPO/skills/project-tracker/scripts/restore-project-tracker.sh" ]]
+for path in web/src/App.test.tsx tests/test.ts docs/design.md skill/codegraph/SKILL.md dist/cli.js; do
+  [[ ! -e "$PAYLOAD/$path" ]] || { echo "unexpected payload file: $path" >&2; exit 1; }
+done
+
 printf 'stale\n' > "$REPO/skills/project-tracker/stale.txt"
+printf 'stale payload\n' > "$PAYLOAD/stale.txt"
 printf 'updated\n' > "$TMP/sources/project-tracker/value.txt"
 (cd "$REPO" && bash scripts/import-skills.sh project-tracker)
 [[ "$(cat "$REPO/skills/project-tracker/value.txt")" == 'updated' ]]
 [[ ! -e "$REPO/skills/project-tracker/stale.txt" ]]
+[[ ! -e "$REPO/skills/project-tracker/project-source/stale.txt" ]]
 [[ "$(cat "$REPO/skills/obsidian-learning/value.txt")" == 'source-obsidian-learning' ]]
 
 before_dest="$(snapshot "$REPO/skills")"
@@ -71,6 +108,14 @@ fi
 export MYSKILLS_OBSIDIAN_LEARNING_SOURCE="$TMP/sources/missing"
 if (cd "$REPO" && bash scripts/import-skills.sh explain-with-diagrams obsidian-learning); then
   echo 'missing source unexpectedly accepted' >&2
+  exit 1
+fi
+[[ "$before_dest" == "$(snapshot "$REPO/skills")" ]]
+
+export MYSKILLS_OBSIDIAN_LEARNING_SOURCE="$TMP/sources/obsidian-learning"
+export MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE="$TMP/sources/missing-project"
+if (cd "$REPO" && bash scripts/import-skills.sh explain-with-diagrams project-tracker); then
+  echo 'missing project source unexpectedly accepted' >&2
   exit 1
 fi
 [[ "$before_dest" == "$(snapshot "$REPO/skills")" ]]

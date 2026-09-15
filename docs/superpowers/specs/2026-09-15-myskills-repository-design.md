@@ -2,9 +2,43 @@
 
 ## Purpose
 
-`Vangalle/mySkills` is the source repository for Caleb's two native Pi skills. It supports installing either skill independently, selecting skills interactively, or installing all available skills through the standard `npx skills` CLI.
+`Vangalle/mySkills` is a read-only bundler for three independently maintained local skills:
 
-The repository does not contain or modify `pi-copy-code` or any skills currently managed under `~/.agents/skills/`.
+1. `explain-with-diagrams`
+2. `project-tracker`
+3. `obsidian-learning`
+
+It imports portable snapshots into one public GitHub repository so users can install one, several, or all three through the standard `npx skills` CLI. It never moves, deletes, rewrites, or symlinks the local source skills.
+
+`pi-copy-code`, `~/.agents/skills/` collections other than the explicit `obsidian-learning` source, and all other local skills remain outside this repository.
+
+## Data flow and ownership
+
+The local projects remain the source of truth. Import is strictly one-way:
+
+```text
+local skill sources (read-only)
+    -> import portable copies
+mySkills/skills/* snapshots
+    -> validate, commit, push
+Vangalle/mySkills
+    -> select and install
+npx skills users
+```
+
+There is no write path from `mySkills` back to any local skill source.
+
+## Local sources
+
+The default maintainer source mapping is:
+
+| Bundled name | Read-only source |
+| --- | --- |
+| `explain-with-diagrams` | `$HOME/.pi/agent/skills/explain-with-diagrams` |
+| `project-tracker` | `$HOME/.pi/agent/skills/project-tracker` |
+| `obsidian-learning` | `$HOME/Projects/skill-obsidian-learner/obsidian-learning` |
+
+Tests may override these paths through environment variables, but normal maintenance uses the defaults above. Import always reads the current working-tree content, including valid local changes that have not yet been committed in their source repositories.
 
 ## Repository structure
 
@@ -13,96 +47,117 @@ mySkills/
 ├── README.md
 ├── package.json
 ├── scripts/
+│   ├── import-skills.sh
 │   └── update-skills.sh
 ├── tests/
+│   ├── test-import-skills.sh
+│   ├── test-update-skills.sh
 │   └── verify-repository.sh
 └── skills/
     ├── explain-with-diagrams/
-    │   └── SKILL.md
-    └── project-tracker/
-        ├── SKILL.md
-        ├── references/
-        └── scripts/
+    ├── project-tracker/
+    └── obsidian-learning/
 ```
 
-Each complete skill directory moves from `~/.pi/agent/skills/` into `skills/` without changing its internal paths or behavior. Supporting files remain beside the corresponding `SKILL.md` so relative references continue to resolve.
+- `import-skills.sh` owns source mapping and snapshot synchronization.
+- `update-skills.sh` owns Git safety checks, validation, commit creation, and pushing.
+- Tests verify import boundaries and repository contents without writing to real local skill sources or the real GitHub remote.
+- `package.json` is private maintenance tooling; it is not a published package or custom skill installer.
+
+## Import behavior
+
+The maintenance interface is:
+
+```bash
+# Import, validate, commit, and push all three skills
+npm run update-skills
+
+# Update one or more named skills
+npm run update-skills -- obsidian-learning
+npm run update-skills -- project-tracker obsidian-learning
+```
+
+No arguments means all three managed skills. Arguments must exactly match managed skill names.
+
+The importer preflights every requested source before changing any bundled snapshot. It then prepares every new snapshot in temporary directories and replaces destinations only after all temporary copies succeed. For every requested skill, it:
+
+1. verifies that the source is a readable directory containing `SKILL.md`;
+2. copies its complete portable contents into a temporary snapshot;
+3. excludes machine-specific or generated files; and
+4. replaces `skills/<name>/`, thereby removing bundled files that no longer exist in the source.
+
+The required exclusions are:
+
+- `project-tracker/.project-tracker-source.json` because it contains absolute machine paths and installation metadata;
+- every `__pycache__/` directory; and
+- every `*.pyc` file.
+
+The importer must not invoke source-project installers or write anywhere under the source paths.
+
+## Automatic commit and push
+
+Before importing, `update-skills.sh` requires:
+
+- the current branch is `main`;
+- the repository working tree is clean;
+- `origin/main` exists; and
+- local `HEAD` exactly matches the freshly fetched `origin/main`.
+
+If any condition fails, it exits without importing, committing, or pushing. It never stashes, rebases, merges, resets, or force-pushes.
+
+After import, it runs the complete repository test command. On failure, imported snapshots remain visible as uncommitted changes for inspection, but no commit or push occurs.
+
+When validation passes:
+
+- no changed bundled files means a successful no-op with no commit and no push;
+- changed bundled files are staged only from the requested `skills/<name>/` directories;
+- the generated commit message is `chore(skills): update <comma-separated names>`; and
+- the new commit is pushed to `origin/main` without force.
 
 ## Installation interface
 
-The README will document these standard commands:
+The README documents:
 
 ```bash
-# Inspect available skills
+# List available skills
 npx skills add Vangalle/mySkills --list
 
-# Choose one or more interactively
+# Select one or more interactively for Pi
 npx skills add Vangalle/mySkills -g -a pi
 
-# Install one named skill
-npx skills add Vangalle/mySkills --skill project-tracker -g -a pi
+# Install one named skill for Pi
+npx skills add Vangalle/mySkills --skill obsidian-learning -g -a pi
 
-# Install every skill for Pi only
+# Install every bundled skill for Pi
 npx skills add Vangalle/mySkills --skill '*' -g -a pi -y
 
-# Install every skill for every detected agent
+# Install every bundled skill for every detected agent
 npx skills add Vangalle/mySkills --all -g
 ```
 
-No custom installer or published npm package will be created. The private `package.json` exists only to provide repository maintenance commands. Selection, installation targets, symlinking, copying, and replacement prompts remain the responsibility of the maintained `skills` CLI.
-
-## Updating the repository from local skills
-
-The supported maintenance commands are:
-
-```bash
-# Synchronize, validate, commit, and push both skills
-npm run update-skills
-
-# Synchronize, validate, commit, and push one skill
-npm run update-skills -- project-tracker
-```
-
-`scripts/update-skills.sh` accepts zero or more exact skill names; no names means both managed skills. For each requested skill, it behaves as follows:
-
-1. If the local Pi path is already a symlink to the matching repository directory, retain the repository working-tree content as the update.
-2. If an external updater replaced that symlink with a real directory, synchronize that directory into the repository and exclude `project-tracker/.project-tracker-source.json`.
-3. Validate the complete repository before creating a commit.
-4. Commit changed managed skill files with the generated message `chore(skills): update <comma-separated names>` and push `main` to `origin`.
-5. Exit successfully without creating a commit or pushing when no managed skill changed.
-
-To prevent accidental publication, the command aborts before modifying Git history when the current branch is not `main`, the remote `main` has diverged, or the working tree contains changes outside the managed skill directories. It never stages unrelated files and never force-pushes.
-
-## Local source ownership
-
-The Git checkout at `/Users/caleb/Projects/mySkills` becomes the maintained source of truth. After repository verification, the two existing directories under `~/.pi/agent/skills/` will be replaced with symlinks to their corresponding directories in the checkout.
-
-The migration must preserve a recoverable backup until the symlinks and Pi discovery have been verified. It must not touch `~/.agents/skills/`.
-
-## Git and publication
-
-The two skill directories, all required supporting files, and installation documentation will be committed to `Vangalle/mySkills` and pushed to its `main` branch. The repository remains public.
-
-No third-party local skill collections will be copied into the repository.
+No custom installer is added. Skill selection, target-agent handling, copying, and symlinking remain responsibilities of the maintained `skills` CLI.
 
 ## Failure handling
 
-- Stop before replacing local skill directories if either source directory is missing or incomplete.
-- Exclude `project-tracker/.project-tracker-source.json`, whose absolute source and installer paths describe the current machine rather than the portable skill.
-- Restore the backup if local symlink creation or Pi discovery fails.
-- Abort automatic updates rather than staging unrelated files, overwriting diverged remote history, or force-pushing.
-- Leave synchronized files uncommitted when validation fails so the user can inspect and repair them.
-- Do not claim GitHub publication until the pushed commit and remote file tree are verified.
+- A missing or invalid source aborts before replacing any requested bundled snapshot.
+- Import replaces destinations only after every requested temporary snapshot has been copied successfully.
+- Invalid skill names are rejected without changing the bundle.
+- Validation failure prevents Git history changes and network publication.
+- Remote drift prevents import so local work cannot silently overwrite newer GitHub history.
+- Git staging is restricted to managed skill snapshot paths.
+- Local skill sources remain untouched on every success and failure path.
 
 ## Verification
 
-Acceptance requires fresh evidence for all of the following:
+Acceptance requires fresh evidence that:
 
-1. Both repository skill directories contain valid `SKILL.md` frontmatter and their required supporting files.
-2. `npx skills add Vangalle/mySkills --list` discovers exactly the two intended skills from the published repository.
-3. A temporary isolated installation can select one skill without installing the other.
-4. The all-skills command installs both skills.
-5. Pi's local skill paths resolve to the repository checkout after migration.
-6. The update command detects a changed managed skill, validates it, creates only the intended commit, and pushes that commit to `origin/main`.
-7. The update command makes no commit and no push when managed skills are unchanged.
-8. The update command rejects unrelated working-tree changes and remote divergence.
-9. `Vangalle/pi-copy-code` and its local checkout remain unchanged.
+1. Repository validation finds exactly the three intended skills with valid frontmatter and required supporting files.
+2. Importing fixture sources copies current content, deletes stale bundled content, and excludes machine-specific and generated files.
+3. Import failure leaves fixture source directories unchanged and does not partially replace a destination.
+4. The update workflow commits and pushes only requested skill snapshots in an isolated temporary Git repository.
+5. No-change, dirty-tree, wrong-branch, invalid-name, validation-failure, and remote-drift cases do not create or push a commit.
+6. `npx skills add Vangalle/mySkills --list` discovers exactly the three published skills.
+7. An isolated `npx skills` installation can install one skill without the other two.
+8. The all-skills command installs all three skills for Pi.
+9. Checksums and Git status confirm the three real local source trees are unchanged by import and publication.
+10. `Vangalle/pi-copy-code` and its local checkout remain unchanged.

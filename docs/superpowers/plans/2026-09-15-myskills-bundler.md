@@ -133,7 +133,7 @@ Create `package.json`:
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "test": "bash tests/verify-repository.sh && python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
+    "test": "bash tests/verify-repository.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
   }
 }
 ```
@@ -494,7 +494,7 @@ Update `package.json` scripts to:
 {
   "scripts": {
     "import-skills": "bash scripts/import-skills.sh",
-    "test": "bash tests/verify-repository.sh && bash tests/test-import-skills.sh && python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
+    "test": "bash tests/verify-repository.sh && bash tests/test-import-skills.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
   }
 }
 ```
@@ -788,7 +788,7 @@ Update `package.json` scripts to:
   "scripts": {
     "import-skills": "bash scripts/import-skills.sh",
     "update-skills": "bash scripts/update-skills.sh",
-    "test": "bash tests/verify-repository.sh && bash tests/test-import-skills.sh && bash tests/test-update-skills.sh && python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
+    "test": "bash tests/verify-repository.sh && bash tests/test-import-skills.sh && bash tests/test-update-skills.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
   }
 }
 ```

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explain with Diagrams"
+  short_description: "Report task understanding through precise Mermaid diagrams"
+  default_prompt: "Use $explain-with-diagrams to show your understanding of my task with a precise Mermaid diagram, making layers, interactions, and acceptance boundaries clear."

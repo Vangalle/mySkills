@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS="$ROOT/skills"
-EXPECTED=$'explain-with-diagrams\nobsidian-learning\nproject-tracker'
+EXPECTED=$'explain-with-diagrams\nobsidian-learning\nproject-tracker\nwriting-technical-reports'
 
 [[ -d "$SKILLS" ]] || { echo "missing skills directory" >&2; exit 1; }
 ACTUAL="$(find "$SKILLS" -mindepth 1 -maxdepth 1 -type d \
@@ -13,7 +13,7 @@ ACTUAL="$(find "$SKILLS" -mindepth 1 -maxdepth 1 -type d \
   exit 1
 }
 
-for skill in explain-with-diagrams project-tracker obsidian-learning; do
+for skill in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
   file="$SKILLS/$skill/SKILL.md"
   [[ -f "$file" ]] || { echo "missing $file" >&2; exit 1; }
   grep -q "^name: $skill$" "$file" || {
@@ -51,6 +51,11 @@ if find "$PROJECT_SOURCE/web/src" \( -name '*.test.ts' -o -name '*.test.tsx' \) 
 fi
 [[ -f "$SKILLS/obsidian-learning/scripts/obsidian_learning.py" ]]
 [[ -f "$SKILLS/obsidian-learning/tests/test_obsidian_learning.py" ]]
+WRITING_REPORT_FILES="$(find "$SKILLS/writing-technical-reports" -mindepth 1 -maxdepth 1 -exec basename {} \; | LC_ALL=C sort)"
+[[ "$WRITING_REPORT_FILES" == 'SKILL.md' ]] || {
+  printf 'unexpected writing-technical-reports files:\n%s\n' "$WRITING_REPORT_FILES" >&2
+  exit 1
+}
 
 if find "$SKILLS" \( -name '.project-tracker-source.json' -o -name '__pycache__' -o -name '*.pyc' \) -print | grep -q .; then
   echo "bundle contains machine-specific or generated files" >&2

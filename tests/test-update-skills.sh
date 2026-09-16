@@ -28,7 +28,7 @@ snapshot() {
   done)
 }
 
-for name in explain-with-diagrams project-tracker obsidian-learning; do
+for name in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
   make_skill "$name"
 done
 PROJECT_SOURCE="$SOURCES/project-tracker-project"
@@ -49,6 +49,7 @@ export MYSKILLS_EXPLAIN_WITH_DIAGRAMS_SOURCE="$SOURCES/explain-with-diagrams"
 export MYSKILLS_PROJECT_TRACKER_SOURCE="$SOURCES/project-tracker"
 export MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE="$PROJECT_SOURCE"
 export MYSKILLS_OBSIDIAN_LEARNING_SOURCE="$SOURCES/obsidian-learning"
+export MYSKILLS_WRITING_TECHNICAL_REPORTS_SOURCE="$SOURCES/writing-technical-reports"
 
 mkdir -p "$WORK/scripts" "$WORK/tests" "$WORK/templates/project-tracker"
 cp "$ROOT/scripts/import-skills.sh" "$WORK/scripts/import-skills.sh"
@@ -59,7 +60,7 @@ cat > "$WORK/tests/fixture-validate.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ "${FAIL_VALIDATION:-0}" != 1 ]] || exit 1
-for skill in explain-with-diagrams project-tracker obsidian-learning; do
+for skill in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
   [[ -f "skills/$skill/SKILL.md" ]]
 done
 EOF
@@ -103,6 +104,22 @@ output="$(cd "$WORK" && bash scripts/update-skills.sh project-tracker)"
 [[ "$output" == *'No skill changes to publish.'* ]]
 [[ "$before" == "$(git -C "$WORK" rev-parse HEAD)" ]]
 [[ "$before" == "$(git --git-dir="$REMOTE" rev-parse refs/heads/main)" ]]
+
+# A runtime-only skill update commits and pushes only its SKILL.md.
+cat > "$SOURCES/writing-technical-reports/SKILL.md" <<'EOF'
+---
+name: writing-technical-reports
+description: Use when testing updated technical report imports.
+---
+# Updated writing technical reports
+EOF
+before="$(git -C "$WORK" rev-parse HEAD)"
+(cd "$WORK" && bash scripts/update-skills.sh writing-technical-reports)
+after="$(git -C "$WORK" rev-parse HEAD)"
+[[ "$before" != "$after" ]]
+[[ "$after" == "$(git --git-dir="$REMOTE" rev-parse refs/heads/main)" ]]
+[[ "$(git -C "$WORK" log -1 --format=%s)" == 'chore(skills): update writing-technical-reports' ]]
+[[ "$(git -C "$WORK" diff-tree --no-commit-id --name-only -r HEAD)" == 'skills/writing-technical-reports/SKILL.md' ]]
 
 # A dirty tree aborts before importing a changed source.
 printf 'unrelated\n' > "$WORK/unrelated.txt"

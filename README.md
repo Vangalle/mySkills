@@ -1,12 +1,13 @@
 # mySkills
 
-A public bundle of three independently maintained Agent Skills for Pi:
+A public bundle of four independently maintained Agent Skills for Pi:
 
 | Skill | Purpose |
 | --- | --- |
 | `explain-with-diagrams` | Make consequential task and system interpretations inspectable with Mermaid diagrams. |
 | `project-tracker` | Manage project goals, design history, progress, verification evidence, and status. |
 | `obsidian-learning` | Support structured learning and note editing in Obsidian vaults. |
+| `writing-technical-reports` | Write rigorous Chinese technical and scientific reports from supplied material. |
 
 Review skill contents before installation: skills can instruct an agent to run commands with your permissions.
 
@@ -71,6 +72,7 @@ No LLM is involved:
 ```bash
 npm run update-skills
 npm run update-skills -- obsidian-learning
+npm run update-skills -- writing-technical-reports
 ```
 
 A valid update imports current local files and the Project Tracker restoration payload, runs all checks, commits the requested skill snapshots, and pushes `origin/main`. Safety checks stop on a dirty repository, wrong branch, failed validation, or remote drift.

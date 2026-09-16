@@ -32,9 +32,10 @@ snapshot() {
   done)
 }
 
-for name in explain-with-diagrams project-tracker obsidian-learning; do
+for name in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
   make_skill "$name"
 done
+printf 'development-only\n' > "$TMP/sources/writing-technical-reports/evaluation.txt"
 mkdir -p "$TMP/sources/project-tracker/__pycache__"
 printf 'private\n' > "$TMP/sources/project-tracker/.project-tracker-source.json"
 printf 'cache\n' > "$TMP/sources/project-tracker/__pycache__/cache.pyc"
@@ -64,16 +65,24 @@ export MYSKILLS_EXPLAIN_WITH_DIAGRAMS_SOURCE="$TMP/sources/explain-with-diagrams
 export MYSKILLS_PROJECT_TRACKER_SOURCE="$TMP/sources/project-tracker"
 export MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE="$PROJECT_SOURCE"
 export MYSKILLS_OBSIDIAN_LEARNING_SOURCE="$TMP/sources/obsidian-learning"
+export MYSKILLS_WRITING_TECHNICAL_REPORTS_SOURCE="$TMP/sources/writing-technical-reports"
 
 before="$(snapshot "$TMP/sources")"
 (cd "$REPO" && bash scripts/import-skills.sh)
 after="$(snapshot "$TMP/sources")"
 [[ "$before" == "$after" ]] || { echo 'sources changed' >&2; exit 1; }
 
+for name in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
+  [[ -f "$REPO/skills/$name/SKILL.md" ]] || {
+    echo "missing imported skill: $name" >&2
+    exit 1
+  }
+done
 for name in explain-with-diagrams project-tracker obsidian-learning; do
-  [[ -f "$REPO/skills/$name/SKILL.md" ]]
   [[ -f "$REPO/skills/$name/value.txt" ]]
 done
+[[ ! -e "$REPO/skills/writing-technical-reports/value.txt" ]]
+[[ ! -e "$REPO/skills/writing-technical-reports/evaluation.txt" ]]
 [[ ! -e "$REPO/skills/project-tracker/.project-tracker-source.json" ]]
 [[ ! -e "$REPO/skills/project-tracker/__pycache__" ]]
 [[ ! -e "$REPO/skills/obsidian-learning/helper.pyc" ]]

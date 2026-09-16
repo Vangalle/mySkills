@@ -3,11 +3,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_ROOT="$ROOT/skills"
-ALL_SKILLS=(explain-with-diagrams project-tracker obsidian-learning)
+ALL_SKILLS=(explain-with-diagrams project-tracker obsidian-learning writing-technical-reports)
 
 is_managed() {
   case "$1" in
-    explain-with-diagrams|project-tracker|obsidian-learning) return 0 ;;
+    explain-with-diagrams|project-tracker|obsidian-learning|writing-technical-reports) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -22,6 +22,9 @@ source_for() {
       ;;
     obsidian-learning)
       printf '%s\n' "${MYSKILLS_OBSIDIAN_LEARNING_SOURCE:-$HOME/Projects/skill-obsidian-learner/obsidian-learning}"
+      ;;
+    writing-technical-reports)
+      printf '%s\n' "${MYSKILLS_WRITING_TECHNICAL_REPORTS_SOURCE:-$HOME/Projects/skill-write-technical-report}"
       ;;
   esac
 }
@@ -81,13 +84,17 @@ mkdir -p "$STAGE/new" "$STAGE/backup"
 for skill in "${selected[@]}"; do
   source_dir="$(source_for "$skill")"
   mkdir -p "$STAGE/new/$skill"
-  rsync -a \
-    --exclude='.project-tracker-source.json' \
-    --exclude='project-source/' \
-    --exclude='restore-project-tracker.sh' \
-    --exclude='__pycache__/' \
-    --exclude='*.pyc' \
-    "$source_dir/" "$STAGE/new/$skill/"
+  if [[ "$skill" == writing-technical-reports ]]; then
+    cp -p "$source_dir/SKILL.md" "$STAGE/new/$skill/SKILL.md"
+  else
+    rsync -a \
+      --exclude='.project-tracker-source.json' \
+      --exclude='project-source/' \
+      --exclude='restore-project-tracker.sh' \
+      --exclude='__pycache__/' \
+      --exclude='*.pyc' \
+      "$source_dir/" "$STAGE/new/$skill/"
+  fi
   [[ -r "$STAGE/new/$skill/SKILL.md" ]] || {
     echo "staged snapshot missing SKILL.md: $skill" >&2
     exit 4

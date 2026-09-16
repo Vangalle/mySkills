@@ -3,3 +3,4 @@
 *.pyc
 skills/.myskills-import.*/
 docs/superpowers/
+.worktrees/

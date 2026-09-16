@@ -51,11 +51,20 @@ if find "$PROJECT_SOURCE/web/src" \( -name '*.test.ts' -o -name '*.test.tsx' \) 
 fi
 [[ -f "$SKILLS/obsidian-learning/scripts/obsidian_learning.py" ]]
 [[ -f "$SKILLS/obsidian-learning/tests/test_obsidian_learning.py" ]]
-WRITING_REPORT_FILES="$(find "$SKILLS/writing-technical-reports" -mindepth 1 -maxdepth 1 -exec basename {} \; | LC_ALL=C sort)"
-[[ "$WRITING_REPORT_FILES" == 'SKILL.md' ]] || {
-  printf 'unexpected writing-technical-reports files:\n%s\n' "$WRITING_REPORT_FILES" >&2
+WRITING_REPORT_ROOTS="$(find "$SKILLS/writing-technical-reports" \
+  -mindepth 1 -maxdepth 1 -exec basename {} \; | LC_ALL=C sort)"
+EXPECTED_WRITING_REPORT_ROOTS=$'SKILL.md\nscripts'
+[[ "$WRITING_REPORT_ROOTS" == "$EXPECTED_WRITING_REPORT_ROOTS" ]] || {
+  printf 'unexpected writing-technical-reports roots:\n%s\n' \
+    "$WRITING_REPORT_ROOTS" >&2
   exit 1
 }
+WRITING_GATE="$SKILLS/writing-technical-reports/scripts/review_report_gate.py"
+[[ -x "$WRITING_GATE" ]] || {
+  echo "missing executable writing report gate: $WRITING_GATE" >&2
+  exit 1
+}
+python3 "$WRITING_GATE" --help >/dev/null
 
 if find "$SKILLS" \( -name '.project-tracker-source.json' -o -name '__pycache__' -o -name '*.pyc' \) -print | grep -q .; then
   echo "bundle contains machine-specific or generated files" >&2

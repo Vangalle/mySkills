@@ -35,7 +35,19 @@ snapshot() {
 for name in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
   make_skill "$name"
 done
-printf 'development-only\n' > "$TMP/sources/writing-technical-reports/evaluation.txt"
+WRITING_SOURCE="$TMP/sources/writing-technical-reports"
+mkdir -p "$WRITING_SOURCE/scripts" "$WRITING_SOURCE/docs" \
+  "$WRITING_SOURCE/evaluations" "$WRITING_SOURCE/tests" \
+  "$WRITING_SOURCE/__pycache__" "$WRITING_SOURCE/.git"
+printf '#!/usr/bin/env python3\nprint("gate")\n' \
+  > "$WRITING_SOURCE/scripts/review_report_gate.py"
+chmod +x "$WRITING_SOURCE/scripts/review_report_gate.py"
+printf 'development-only\n' > "$WRITING_SOURCE/docs/design.md"
+printf 'development-only\n' > "$WRITING_SOURCE/evaluations/result.txt"
+printf 'development-only\n' > "$WRITING_SOURCE/tests/test_gate.py"
+printf 'cache\n' > "$WRITING_SOURCE/__pycache__/gate.pyc"
+printf 'metadata\n' > "$WRITING_SOURCE/.git/config"
+printf 'ignore\n' > "$WRITING_SOURCE/.gitignore"
 mkdir -p "$TMP/sources/project-tracker/__pycache__"
 printf 'private\n' > "$TMP/sources/project-tracker/.project-tracker-source.json"
 printf 'cache\n' > "$TMP/sources/project-tracker/__pycache__/cache.pyc"
@@ -81,11 +93,21 @@ done
 for name in explain-with-diagrams project-tracker obsidian-learning; do
   [[ -f "$REPO/skills/$name/value.txt" ]]
 done
-[[ ! -e "$REPO/skills/writing-technical-reports/value.txt" ]]
-[[ ! -e "$REPO/skills/writing-technical-reports/evaluation.txt" ]]
 [[ ! -e "$REPO/skills/project-tracker/.project-tracker-source.json" ]]
 [[ ! -e "$REPO/skills/project-tracker/__pycache__" ]]
 [[ ! -e "$REPO/skills/obsidian-learning/helper.pyc" ]]
+
+[[ -f "$REPO/skills/writing-technical-reports/value.txt" ]]
+[[ -x "$REPO/skills/writing-technical-reports/scripts/review_report_gate.py" ]]
+cmp -s \
+  "$WRITING_SOURCE/scripts/review_report_gate.py" \
+  "$REPO/skills/writing-technical-reports/scripts/review_report_gate.py"
+for path in docs evaluations tests __pycache__ .git .gitignore; do
+  [[ ! -e "$REPO/skills/writing-technical-reports/$path" ]] || {
+    echo "unexpected writing report development path: $path" >&2
+    exit 1
+  }
+done
 
 PAYLOAD="$REPO/skills/project-tracker/project-source"
 for path in src/cli.ts src/pi/extension.ts web/index.html web/src/main.tsx \

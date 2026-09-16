@@ -85,7 +85,15 @@ for skill in "${selected[@]}"; do
   source_dir="$(source_for "$skill")"
   mkdir -p "$STAGE/new/$skill"
   if [[ "$skill" == writing-technical-reports ]]; then
-    cp -p "$source_dir/SKILL.md" "$STAGE/new/$skill/SKILL.md"
+    rsync -a \
+      --exclude='.git' \
+      --exclude='.gitignore' \
+      --exclude='docs/' \
+      --exclude='evaluations/' \
+      --exclude='tests/' \
+      --exclude='__pycache__/' \
+      --exclude='*.pyc' \
+      "$source_dir/" "$STAGE/new/$skill/"
   else
     rsync -a \
       --exclude='.project-tracker-source.json' \

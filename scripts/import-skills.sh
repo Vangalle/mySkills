@@ -88,6 +88,8 @@ for skill in "${selected[@]}"; do
     rsync -a \
       --exclude='.git' \
       --exclude='.gitignore' \
+      --exclude='.superpowers/' \
+      --exclude='.worktrees/' \
       --exclude='docs/' \
       --exclude='evaluations/' \
       --exclude='tests/' \

@@ -38,7 +38,8 @@ done
 WRITING_SOURCE="$TMP/sources/writing-technical-reports"
 mkdir -p "$WRITING_SOURCE/scripts" "$WRITING_SOURCE/docs" \
   "$WRITING_SOURCE/evaluations" "$WRITING_SOURCE/tests" \
-  "$WRITING_SOURCE/__pycache__" "$WRITING_SOURCE/.git"
+  "$WRITING_SOURCE/__pycache__" "$WRITING_SOURCE/.git" \
+  "$WRITING_SOURCE/.superpowers/sdd" "$WRITING_SOURCE/.worktrees/feature"
 printf '#!/usr/bin/env python3\nprint("gate")\n' \
   > "$WRITING_SOURCE/scripts/review_report_gate.py"
 chmod +x "$WRITING_SOURCE/scripts/review_report_gate.py"
@@ -47,6 +48,8 @@ printf 'development-only\n' > "$WRITING_SOURCE/evaluations/result.txt"
 printf 'development-only\n' > "$WRITING_SOURCE/tests/test_gate.py"
 printf 'cache\n' > "$WRITING_SOURCE/__pycache__/gate.pyc"
 printf 'metadata\n' > "$WRITING_SOURCE/.git/config"
+printf 'workspace\n' > "$WRITING_SOURCE/.superpowers/sdd/progress.md"
+printf 'worktree\n' > "$WRITING_SOURCE/.worktrees/feature/HEAD"
 printf 'ignore\n' > "$WRITING_SOURCE/.gitignore"
 mkdir -p "$TMP/sources/project-tracker/__pycache__"
 printf 'private\n' > "$TMP/sources/project-tracker/.project-tracker-source.json"
@@ -102,7 +105,7 @@ done
 cmp -s \
   "$WRITING_SOURCE/scripts/review_report_gate.py" \
   "$REPO/skills/writing-technical-reports/scripts/review_report_gate.py"
-for path in docs evaluations tests __pycache__ .git .gitignore; do
+for path in docs evaluations tests __pycache__ .git .gitignore .superpowers .worktrees; do
   [[ ! -e "$REPO/skills/writing-technical-reports/$path" ]] || {
     echo "unexpected writing report development path: $path" >&2
     exit 1

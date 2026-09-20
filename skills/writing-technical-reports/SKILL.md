@@ -21,14 +21,14 @@ Use this outline by default:
 6. **Discussion:** interpretation, implications, limitations, and uncertainty.
 7. **Conclusion:** synthesis supported by the report.
 
-This is a strong default, not a rigid template. Merge, rename, omit, or add sections only when the task clearly requires it or the user explicitly requests it. Preserve the progression `central problem/idea → foundations → approach or mechanism → evidence or analysis → interpretation → conclusion`. Do not run a separate structural fit check or manufacture content to complete the outline.
+This is a strong default, not a rigid template. Merge, rename, omit, or add sections only when the task clearly requires it or the user explicitly requests it. Preserve the progression `central problem/idea → foundations → approach or mechanism → evidence or analysis → interpretation → conclusion`. Do not run a separate outline-fit check or manufacture content to complete the outline; this ban concerns outline selection, not the mandatory `structure` audit below.
 
 ## Writing Requirements
 
 - State the overall framework, central claim, and causal or logical chain before details.
 - Introduce evidence-supported necessary definitions, theorems, assumptions, settings, concepts, and notation before first substantive use.
 - Explain a formula's conceptual purpose before or alongside its details; define every symbol and explain each consequential term.
-- Use established domain terminology when it improves precision. Coin a term only when repeated paraphrase would materially harm clarity, and define it immediately.
+- Use established domain terminology when it improves precision. Coin a term only when repeated paraphrase would materially harm clarity, and define it immediately. Assign one canonical term to each object, mechanism, process, or concept and use it throughout the report. Never vary terminology for style, novelty, or avoidance of repetition; remove every alternative label used for the same referent.
 - Write for readers familiar with the general area but not the same specialty. Use plain, elegant, formal Chinese and consistent terminology.
 - Apply Occam's razor to unnecessary concepts, assumptions, repetition, and complexity—not to necessary background, reasoning, or technical detail.
 - Allocate detail by conceptual importance; minor exceptions must not overwhelm the main mechanism.
@@ -59,10 +59,50 @@ Omitting the gap is not permission to fill it, imply it was resolved, or strengt
 1. Inspect the material and identify its scope, thesis, mechanisms, evidence, and uncertainties.
 2. Follow the background-gap permission flow when applicable.
 3. Apply the default structure with only task-required or user-requested adjustments.
-4. Draft from the overall framework toward details.
-5. Review and revise before delivering.
+4. Draft the complete report from the overall framework toward details, but do not deliver the first draft.
+5. Run the mandatory review-revision gate below. Deliver only the exact version that passes; if the third review fails, report the unresolved blockers and ask the user how to proceed instead of delivering the report.
+
+## Mandatory Review-Revision Gate
+
+After completing a first draft, always enter `AUDIT_REQUIRED`; never deliver the draft directly. Review the entire report against all five checks:
+
+1. `structure`: overall framework, section roles, logical continuity, and supported conclusion.
+2. `term_necessity_and_definition`: every specialized or coined term is necessary, evidence-supported where required, and defined at first use.
+3. `term_referential_consistency`: each referent has one canonical term and no alternative label anywhere in the report.
+4. `explanation_completeness`: definitions, symbols, formulas, mechanisms, and consequential causal or logical links are sufficiently explained.
+5. `evidence_fidelity`: facts, deductions, hypotheses, uncertainty, citations, and conclusions remain within the approved evidence boundary.
+
+Before judging terminology, inventory source terms, established domain terms, and report-created labels. Delete a report-created term unless avoiding it would materially damage clarity. For every referent with multiple candidate labels, choose one canonical term and treat every other label as forbidden. Never vary terminology for style, novelty, or repetition avoidance. A translation, symbol, or abbreviation used only to define the canonical term is not a second referential term; do not later use it independently as another name.
+
+Create an internal review record containing the round number, `PASS` or `FAIL` for each named check, a canonical-term table, forbidden variants, and actionable issues with locations. Use the exact five check identifiers `structure`, `term_necessity_and_definition`, `term_referential_consistency`, `explanation_completeness`, and `evidence_fidelity` in the internal record and in any disclosed record; do not paraphrase or rename them. The record is internal unless the user asks to see it. Any failed check makes the whole round fail.
+
+On failure, revise the complete report against the issue list and then review the entire report again in the next numbered round. Any issue found means the round ends immediately in overall `FAIL`; fixes made during a round never change it to `PASS`. Do not inspect only changed paragraphs: the next round must re-audit the entire revised report against all five checks from its beginning. Only a round that began from the revised full report and found zero issues may end `PASS` and `RELEASE`. Run a maximum of three review rounds. A third failed review enters `BLOCKED`: do not deliver the report; provide only the unresolved blockers and request a user decision. A passed report enters `RELEASED`. Any later content change invalidates that result and returns the report to `AUDIT_REQUIRED`.
+
+When the loaded skill directory, a writable temporary directory, and Python 3 are available, use `scripts/review_report_gate.py`: save the draft and review JSON privately, run `start`, run `check` after each full review, and obtain the final report through `release`. Treat any malformed JSON, illegal transition, or hash mismatch as not released, and apply the result/exit-code mapping below. Output only the `report` value returned by a successful `release`, unless the user requested the review records.
+
+The script exposes three commands, each printing one JSON object to stdout:
+
+```text
+python3 scripts/review_report_gate.py start   --draft DRAFT --state STATE
+python3 scripts/review_report_gate.py check   --draft DRAFT --state STATE --review REVIEW
+python3 scripts/review_report_gate.py release --draft DRAFT --state STATE
+```
+
+The review JSON has exactly these top-level keys: `schema_version` (always `1`), `verdict` (`PASS` or `FAIL`), `checks`, `canonical_terms`, and `issues`. `checks` contains exactly the five identifiers listed above, each with exactly `status` (`PASS` or `FAIL`) and `issues` (a list). Every issue has exactly `location`, `problem`, and `required_change`, all non-empty strings. Every canonical term has exactly `referent`, `canonical_term`, and `forbidden_variants` (a list). Top-level `issues` is the ordered concatenation of the five per-check `issues` lists in the identifier order above; `PASS` requires all five statuses to be `PASS` and `issues` to be empty.
+
+Read the script's `result` and exit code on every call:
+
+- `AUDIT_REQUIRED`, exit 0: round one is open; perform the full five-check audit next.
+- `RELEASE`, exit 0: the review passed; call `release` and output only its `report` value.
+- `REVISE`, exit 10: a normal failed round, not infrastructure failure. Do not switch to internal fallback. Revise the complete report against the issues, then submit a new numbered full audit.
+- `BLOCKED`, exit 20: stop, report only the unresolved blockers, and ask the user how to proceed; do not deliver.
+- `ERROR`, exit 2: the review JSON, state file, or invocation is malformed. Repair it and run the script again; do not deliver and do not silently switch to internal mode.
+
+When the script cannot run because tools, filesystem access, Python 3, or the skill path is unavailable, execute the same states and five-check contract internally. Tool absence removes only the mechanical validator; it does not permit skipping review, shortening the checks, exposing the first draft, or exceeding the three-round limit.
 
 ## Final Review
+
+Apply this checklist inside every gate audit; it does not replace or occur after the mandatory loop.
 
 Confirm that the report is logically continuous, as self-contained as the approved evidence boundary permits, and faithful to its sources. Check that section roles remain distinct, evidence-supported symbols and specialized terms are defined, citations support the correct claims, uncertainty is preserved, and conclusions follow from the analysis.
 

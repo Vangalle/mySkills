@@ -65,6 +65,11 @@ WRITING_GATE="$SKILLS/writing-technical-reports/scripts/review_report_gate.py"
   exit 1
 }
 python3 "$WRITING_GATE" --help >/dev/null
+WRITING_SKILL="$SKILLS/writing-technical-reports/SKILL.md"
+grep -qx '## Mandatory Review-Revision Gate' "$WRITING_SKILL" || {
+  echo "stale writing-technical-reports snapshot: missing gate heading" >&2
+  exit 1
+}
 
 if find "$SKILLS" \( -name '.project-tracker-source.json' -o -name '__pycache__' -o -name '*.pyc' \) -print | grep -q .; then
   echo "bundle contains machine-specific or generated files" >&2

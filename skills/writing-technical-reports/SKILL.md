@@ -21,7 +21,7 @@ Use this outline by default:
 6. **Discussion:** interpretation, implications, limitations, and uncertainty.
 7. **Conclusion:** synthesis supported by the report.
 
-This is a strong default, not a rigid template. Merge, rename, omit, or add sections only when the task clearly requires it or the user explicitly requests it. Preserve the progression `central problem/idea → foundations → approach or mechanism → evidence or analysis → interpretation → conclusion`. Do not run a separate structural fit check or manufacture content to complete the outline.
+This is a strong default, not a rigid template. Merge, rename, omit, or add sections only when the task clearly requires it or the user explicitly requests it. Preserve the progression `central problem/idea → foundations → approach or mechanism → evidence or analysis → interpretation → conclusion`. Do not run a separate outline-fit check or manufacture content to complete the outline; this ban concerns outline selection, not the mandatory `structure` audit below.
 
 ## Writing Requirements
 
@@ -78,7 +78,25 @@ Create an internal review record containing the round number, `PASS` or `FAIL` f
 
 On failure, revise the complete report against the issue list and then review the entire report again in the next numbered round. Any issue found means the round ends immediately in overall `FAIL`; fixes made during a round never change it to `PASS`. Do not inspect only changed paragraphs: the next round must re-audit the entire revised report against all five checks from its beginning. Only a round that began from the revised full report and found zero issues may end `PASS` and `RELEASE`. Run a maximum of three review rounds. A third failed review enters `BLOCKED`: do not deliver the report; provide only the unresolved blockers and request a user decision. A passed report enters `RELEASED`. Any later content change invalidates that result and returns the report to `AUDIT_REQUIRED`.
 
-When the loaded skill directory, a writable temporary directory, and Python 3 are available, use `scripts/review_report_gate.py`: save the draft and review JSON privately, run `start`, run `check` after each full review, and obtain the final report through `release`. Treat any malformed JSON, nonzero error, illegal transition, or hash mismatch as not released. Output only the `report` value returned by a successful `release`, unless the user requested the review records.
+When the loaded skill directory, a writable temporary directory, and Python 3 are available, use `scripts/review_report_gate.py`: save the draft and review JSON privately, run `start`, run `check` after each full review, and obtain the final report through `release`. Treat any malformed JSON, illegal transition, or hash mismatch as not released, and apply the result/exit-code mapping below. Output only the `report` value returned by a successful `release`, unless the user requested the review records.
+
+The script exposes three commands, each printing one JSON object to stdout:
+
+```text
+python3 scripts/review_report_gate.py start   --draft DRAFT --state STATE
+python3 scripts/review_report_gate.py check   --draft DRAFT --state STATE --review REVIEW
+python3 scripts/review_report_gate.py release --draft DRAFT --state STATE
+```
+
+The review JSON has exactly these top-level keys: `schema_version` (always `1`), `verdict` (`PASS` or `FAIL`), `checks`, `canonical_terms`, and `issues`. `checks` contains exactly the five identifiers listed above, each with exactly `status` (`PASS` or `FAIL`) and `issues` (a list). Every issue has exactly `location`, `problem`, and `required_change`, all non-empty strings. Every canonical term has exactly `referent`, `canonical_term`, and `forbidden_variants` (a list). Top-level `issues` is the ordered concatenation of the five per-check `issues` lists in the identifier order above; `PASS` requires all five statuses to be `PASS` and `issues` to be empty.
+
+Read the script's `result` and exit code on every call:
+
+- `AUDIT_REQUIRED`, exit 0: round one is open; perform the full five-check audit next.
+- `RELEASE`, exit 0: the review passed; call `release` and output only its `report` value.
+- `REVISE`, exit 10: a normal failed round, not infrastructure failure. Do not switch to internal fallback. Revise the complete report against the issues, then submit a new numbered full audit.
+- `BLOCKED`, exit 20: stop, report only the unresolved blockers, and ask the user how to proceed; do not deliver.
+- `ERROR`, exit 2: the review JSON, state file, or invocation is malformed. Repair it and run the script again; do not deliver and do not silently switch to internal mode.
 
 When the script cannot run because tools, filesystem access, Python 3, or the skill path is unavailable, execute the same states and five-check contract internally. Tool absence removes only the mechanical validator; it does not permit skipping review, shortening the checks, exposing the first draft, or exceeding the three-round limit.
 

@@ -12,6 +12,7 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [page, setPage] = useState<Page>("overview");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [workplaneAvailable, setWorkplaneAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,6 +24,25 @@ export function App() {
       })
       .catch((e: Error) => setError(e.message));
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setWorkplaneAvailable(false);
+    if (!selected) return () => { active = false; };
+
+    api.getWorkplane(selected)
+      .then((result) => {
+        if (!active) return;
+        const available = result.status !== "not_configured" && result.status !== "unavailable";
+        setWorkplaneAvailable(available);
+        if (!available) setPage((current) => current === "workplane" ? "overview" : current);
+      })
+      .catch(() => {
+        if (active) setWorkplaneAvailable(false);
+      });
+
+    return () => { active = false; };
+  }, [selected, refreshKey]);
 
   async function rescan() {
     if (!selected) return;
@@ -62,9 +82,11 @@ export function App() {
           <button onClick={() => setPage("sessions")} disabled={page === "sessions"}>
             会话
           </button>
-          <button onClick={() => setPage("workplane")} disabled={page === "workplane"}>
-            工作视图
-          </button>
+          {workplaneAvailable && (
+            <button onClick={() => setPage("workplane")} disabled={page === "workplane"}>
+              工作视图
+            </button>
+          )}
           <button onClick={rescan} title="重新扫描项目证据">
             重新扫描
           </button>

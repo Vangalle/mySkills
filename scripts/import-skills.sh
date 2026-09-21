@@ -68,6 +68,7 @@ for skill in "${selected[@]}"; do
       web/tsconfig.json
       web/vite.config.ts
       scripts/install-skill.mjs
+      scripts/workplane-install-choice.mjs
     )
     for path in "${required_project_files[@]}"; do
       [[ -r "$project_source/$path" ]] || {
@@ -152,6 +153,8 @@ for skill in "${selected[@]}"; do
       cp -p "$project_source/web/$path" "$payload/web/$path"
     done
     cp -p "$project_source/scripts/install-skill.mjs" "$payload/scripts/install-skill.mjs"
+    cp -p "$project_source/scripts/workplane-install-choice.mjs" \
+      "$payload/scripts/workplane-install-choice.mjs"
     mkdir -p "$STAGE/new/$skill/scripts"
     cp -p "$ROOT/templates/project-tracker/restore-project-tracker.sh" \
       "$STAGE/new/$skill/scripts/restore-project-tracker.sh"

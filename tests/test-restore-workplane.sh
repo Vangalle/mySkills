@@ -44,6 +44,10 @@ EOF
 cat > "$BUNDLE/project-source/scripts/install-skill.mjs" <<'EOF'
 import { writeFileSync } from "node:fs";
 writeFileSync(process.env.RESTORE_LOG, JSON.stringify(process.argv.slice(2)));
+if (process.env.RESTORE_SIGNAL === "1") {
+  process.kill(process.ppid, "SIGTERM");
+  await new Promise((resolve) => setTimeout(resolve, 500));
+}
 EOF
 chmod +x "$BUNDLE/scripts/restore-workplane.sh"
 
@@ -81,6 +85,16 @@ if (JSON.stringify(args) !== JSON.stringify(expected)) {
 EOF
 
 printf 'cli source v2\n' > "$BUNDLE/project-source/src/cli.mjs"
+if HOME="$HOME_DIR" RESTORE_LOG="$LOG" RESTORE_SIGNAL=1 \
+  bash "$BUNDLE/scripts/restore-workplane.sh" --yes; then
+  echo 'signalled restoration unexpectedly succeeded' >&2
+  exit 1
+fi
+[[ "$(cat "$RESTORE_ROOT/source/src/cli.mjs")" == 'cli.mjs fixture' ]] || {
+  echo 'signalled restoration did not restore previous source' >&2
+  exit 1
+}
+
 before="$(snapshot "$BUNDLE")"
 HOME="$HOME_DIR" RESTORE_LOG="$LOG" \
   bash "$BUNDLE/scripts/restore-workplane.sh" --yes

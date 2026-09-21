@@ -87,6 +87,30 @@ async function snapshot(path) {
   return info ? `${info.dev}:${info.ino}:${info.mtimeMs}:${info.size}` : null;
 }
 
+export async function transactionalRemove(entries, operations = { rename, rm }) {
+  const moved = [];
+  try {
+    for (const entry of entries) {
+      await operations.rename(entry.path, entry.backup);
+      moved.push(entry);
+    }
+  } catch (error) {
+    const failures = [];
+    for (const entry of moved.reverse()) {
+      try { await operations.rename(entry.backup, entry.path); }
+      catch (rollbackError) { failures.push(rollbackError.message); }
+    }
+    if (failures.length) {
+      throw new Error(`${error.message}; uninstall rollback requires inspection: ${failures.join("; ")}`);
+    }
+    throw error;
+  }
+
+  for (const entry of moved) {
+    await operations.rm(entry.backup, { recursive: entry.recursive, force: true });
+  }
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const source = join(root, "skill", NAME);
@@ -99,12 +123,19 @@ async function main() {
   await requireOwnedCli(cli, cliMarker, source, action);
 
   if (options.uninstall) {
-    if (!(await stat(target)) && !(await stat(cli))) {
+    const targetInfo = await stat(target);
+    const cliInfo = await stat(cli);
+    const cliMarkerInfo = await stat(cliMarker);
+    if (!targetInfo && !cliInfo) {
       throw new Error(`refusing to uninstall ${target}: no owned installation found`);
     }
-    await rm(cliMarker, { force: true });
-    await rm(cli, { force: true });
-    await rm(target, { recursive: true, force: true });
+    const transaction = randomUUID();
+    const entries = [
+      targetInfo && { path: target, backup: `${target}.uninstall-${transaction}`, recursive: true },
+      cliInfo && { path: cli, backup: `${cli}.uninstall-${transaction}`, recursive: false },
+      cliMarkerInfo && { path: cliMarker, backup: `${cliMarker}.uninstall-${transaction}`, recursive: false },
+    ].filter(Boolean);
+    await transactionalRemove(entries);
     console.log(`uninstalled ${NAME} → ${target}`);
     return;
   }
@@ -169,7 +200,9 @@ async function main() {
   console.log(`Pi exposes /skill:${NAME}; run /reload or a new session to load it.`);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+if (process.argv[1] && resolve(process.argv[1]) === installer) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}

@@ -1,9 +1,10 @@
 ---
 name: project-tracker
 description: >-
-  Use when a user explicitly asks about Project Tracker state, design history,
-  progress records, verification or dashboard, or when implementing an existing
-  Design will produce meaningful project progress. Do not use for ordinary
+  Use when a user explicitly asks about Project Tracker state, Goal/Design/Acceptance
+  definition maintenance, design history, progress records, verification or dashboard,
+  or when implementing an existing Design will produce meaningful project progress.
+  Do not use for ordinary
   read-only code explanation, search, review, or status wording unrelated to
   PROJECT_STATE.md.
 ---
@@ -103,7 +104,8 @@ failed/skipped checks are Progress facts worth recording. A plan, task checkbox,
 record, Work Unit status, commit, merge or execution event does not accept a Design
 or achieve a Goal. Read [Pi execution and acceptance](references/pi-execution-acceptance.md).
 
-Run only configured allowlisted checks. Missing check configuration matters only
+Never inspect `.env`, credential stores, secret files or gitignored content to gather
+Tracker evidence. Run only configured allowlisted checks. Missing check configuration matters only
 when verification is requested; follow [onboarding](references/onboarding.md) to
 show observed candidates and obtain consent. It never blocks an unverified Progress
 record.

@@ -65,12 +65,21 @@ npx skills add Vangalle/mySkills --all -g
 
 ## Restore executable runtimes
 
-### Project Tracker
-
-The Project Tracker skill includes the minimal source needed to rebuild its CLI, dashboard, and Pi extension. After installing the skill, restore the complete runtime without an LLM:
+Pi clones the global git package under its git checkout directory. After the install above,
+locate both restore scripts deterministically with:
 
 ```bash
-bash ~/.pi/agent/skills/project-tracker/scripts/restore-project-tracker.sh --yes
+PI_AGENT_ROOT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+MYSKILLS_CHECKOUT="$PI_AGENT_ROOT/git/github.com/Vangalle/mySkills"
+test -d "$MYSKILLS_CHECKOUT/skills"
+```
+
+### Project Tracker
+
+The Project Tracker skill includes the minimal source needed to rebuild its CLI, dashboard, and Pi extension. Restore the complete runtime without an LLM:
+
+```bash
+bash "$MYSKILLS_CHECKOUT/skills/project-tracker/scripts/restore-project-tracker.sh" --yes
 ```
 
 This deterministic command shows its destinations, runs `npm ci` (which downloads dependencies and may run their installation scripts), builds the CLI and dashboard, and invokes Project Tracker's own installer. It requires Node.js 22.5–24, npm, and rsync.
@@ -80,13 +89,13 @@ This deterministic command shows its destinations, runs `npm ci` (which download
 Workplane is independent and optional. Restore only its CLI/runtime with:
 
 ```bash
-bash ~/.pi/agent/skills/workplane/scripts/restore-workplane.sh --yes
+bash "$MYSKILLS_CHECKOUT/skills/workplane/scripts/restore-workplane.sh" --yes
 ```
 
-For a Pi git package installation, run the same script from the package checkout's
-`skills/workplane/scripts/` directory. It installs Workplane under its own
-`~/.local/share/workplane` source and `~/.local/bin/workplane` launcher; it does
-not install or modify Tracker.
+It installs Workplane under its own `~/.local/share/workplane` source and
+`~/.local/bin/workplane` launcher; it does not install or modify Tracker. A
+project-local Pi package instead uses `.pi/git/github.com/Vangalle/mySkills` below
+that project's root.
 
 ## Maintainer update
 

@@ -44,6 +44,7 @@ printf 'config\n' > "$PROJECT_SOURCE/vite.config.ts"
 printf '{}\n' > "$PROJECT_SOURCE/web/tsconfig.json"
 printf 'config\n' > "$PROJECT_SOURCE/web/vite.config.ts"
 printf 'installer\n' > "$PROJECT_SOURCE/scripts/install-skill.mjs"
+printf 'choice\n' > "$PROJECT_SOURCE/scripts/workplane-install-choice.mjs"
 WORKPLANE_PROJECT_SOURCE="$SOURCES/workplane-project"
 mkdir -p "$WORKPLANE_PROJECT_SOURCE/src" "$WORKPLANE_PROJECT_SOURCE/scripts"
 for path in cli.mjs contracts.mjs build.mjs render.mjs viewer.js; do

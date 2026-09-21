@@ -74,7 +74,8 @@ printf '{}\n' > "$PROJECT_SOURCE/tsconfig.json"
 printf 'config\n' > "$PROJECT_SOURCE/vite.config.ts"
 printf '{}\n' > "$PROJECT_SOURCE/web/tsconfig.json"
 printf 'config\n' > "$PROJECT_SOURCE/web/vite.config.ts"
-printf 'installer\n' > "$PROJECT_SOURCE/scripts/install-skill.mjs"
+printf 'import "./workplane-install-choice.mjs";\n' > "$PROJECT_SOURCE/scripts/install-skill.mjs"
+printf 'export const choice = "standalone";\n' > "$PROJECT_SOURCE/scripts/workplane-install-choice.mjs"
 printf 'forbidden\n' > "$PROJECT_SOURCE/tests/test.ts"
 printf 'forbidden\n' > "$PROJECT_SOURCE/docs/design.md"
 printf 'forbidden\n' > "$PROJECT_SOURCE/skill/codegraph/SKILL.md"
@@ -134,10 +135,12 @@ done
 PAYLOAD="$REPO/skills/project-tracker/project-source"
 for path in src/cli.ts src/pi/extension.ts web/index.html web/src/main.tsx \
   web/tsconfig.json web/vite.config.ts package.json package-lock.json \
-  tsconfig.json vite.config.ts scripts/install-skill.mjs; do
+  tsconfig.json vite.config.ts scripts/install-skill.mjs \
+  scripts/workplane-install-choice.mjs; do
   [[ -f "$PAYLOAD/$path" ]] || { echo "missing payload file: $path" >&2; exit 1; }
 done
 [[ -x "$REPO/skills/project-tracker/scripts/restore-project-tracker.sh" ]]
+node "$PAYLOAD/scripts/install-skill.mjs"
 for path in web/src/App.test.tsx tests/test.ts docs/design.md skill/codegraph/SKILL.md dist/cli.js; do
   [[ ! -e "$PAYLOAD/$path" ]] || { echo "unexpected payload file: $path" >&2; exit 1; }
 done

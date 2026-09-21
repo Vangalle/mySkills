@@ -28,8 +28,19 @@ workplane --help
 
 ## 卸载
 
+独立默认安装使用：
+
 ```bash
 node scripts/install-skill.mjs --uninstall
+```
+
+若通过打包的 runtime restore 安装到托管目录，则必须传入同一目标（自定义过
+`WORKPLANE_RESTORE_ROOT` 或 `WORKPLANE_BIN_DIR` 时相应替换）：
+
+```bash
+node ~/.local/share/workplane/source/scripts/install-skill.mjs --uninstall \
+  --skills-dir ~/.local/share/workplane/installed-skills \
+  --bin-dir ~/.local/bin
 ```
 
 只删除 Workplane 自己拥有、且自安装后未被修改过的 skill 和 launcher。若目标来自其它

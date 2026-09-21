@@ -50,9 +50,17 @@ cat > "$BUNDLE/project-source/package-lock.json" <<'EOF'
   }
 }
 EOF
+cat > "$BUNDLE/project-source/scripts/workplane-install-choice.mjs" <<'EOF'
+export const choice = "standalone";
+EOF
 cat > "$BUNDLE/project-source/scripts/install-skill.mjs" <<'EOF'
+import "./workplane-install-choice.mjs";
 import { writeFileSync } from "node:fs";
 writeFileSync(process.env.RESTORE_LOG, JSON.stringify(process.argv.slice(2)));
+if (process.env.RESTORE_SIGNAL === "1") {
+  process.kill(process.ppid, "SIGTERM");
+  await new Promise((resolve) => setTimeout(resolve, 500));
+}
 EOF
 chmod +x "$BUNDLE/scripts/restore-project-tracker.sh"
 
@@ -76,6 +84,7 @@ HOME="$HOME_DIR" RESTORE_LOG="$LOG" \
 [[ -f "$RESTORE_ROOT/source/dist/pi/extension.js" ]]
 [[ -f "$RESTORE_ROOT/source/web/dist/index.html" ]]
 [[ -f "$RESTORE_ROOT/source/skill/project-tracker/SKILL.md" ]]
+[[ -f "$RESTORE_ROOT/source/scripts/workplane-install-choice.mjs" ]]
 
 node - "$LOG" "$RESTORE_ROOT" "$HOME_DIR" <<'EOF'
 const fs = require('fs');
@@ -92,6 +101,16 @@ if (JSON.stringify(args) !== JSON.stringify(expected)) {
 EOF
 
 printf 'cli source v2\n' > "$BUNDLE/project-source/src/cli.ts"
+if HOME="$HOME_DIR" RESTORE_LOG="$LOG" RESTORE_SIGNAL=1 \
+  bash "$BUNDLE/scripts/restore-project-tracker.sh" --yes; then
+  echo 'signalled restoration unexpectedly succeeded' >&2
+  exit 1
+fi
+[[ "$(cat "$RESTORE_ROOT/source/src/cli.ts")" == 'cli source v1' ]] || {
+  echo 'signalled restoration did not restore previous source' >&2
+  exit 1
+}
+
 before="$(snapshot "$BUNDLE")"
 HOME="$HOME_DIR" RESTORE_LOG="$LOG" \
   bash "$BUNDLE/scripts/restore-project-tracker.sh" --yes

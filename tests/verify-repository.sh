@@ -32,7 +32,8 @@ done
 [[ -f "$SKILLS/project-tracker/references/state-schema.md" ]]
 PROJECT_SOURCE="$SKILLS/project-tracker/project-source"
 for path in package.json package-lock.json tsconfig.json vite.config.ts \
-  scripts/install-skill.mjs src/cli.ts src/pi/extension.ts \
+  scripts/install-skill.mjs scripts/workplane-install-choice.mjs \
+  src/cli.ts src/pi/extension.ts \
   web/index.html web/src/main.tsx web/tsconfig.json web/vite.config.ts; do
   [[ -f "$PROJECT_SOURCE/$path" ]] || {
     echo "missing Project Tracker restoration file: $path" >&2

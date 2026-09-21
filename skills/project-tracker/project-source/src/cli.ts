@@ -599,7 +599,7 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
         const snapshot = buildWorkplaneSnapshot(evidence);
         const client = createWorkplaneClient();
         const preview = await previewWorkplaneUpdate({
-          targetPath: join(resolve(path), "WORKPLANE.json"),
+          targetPath: join(scope.root, "WORKPLANE.json"),
           definition,
           trackerStructureHash: trackerStructureHash(snapshot),
           validate: () => workplaneValidation(client, scope.root, definition, snapshot),
@@ -627,12 +627,12 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
         const snapshot = buildWorkplaneSnapshot(evidence);
         const client = createWorkplaneClient();
         await applyWorkplaneUpdate({
-          targetPath: join(resolve(path), "WORKPLANE.json"),
+          targetPath: join(scope.root, "WORKPLANE.json"),
           preview,
           trackerStructureHash: trackerStructureHash(snapshot),
           validate: () => workplaneValidation(client, scope.root, definition, snapshot),
         });
-        io.stdout(JSON.stringify({ path: join(resolve(path), "WORKPLANE.json"), applied: true }));
+        io.stdout(JSON.stringify({ path: join(scope.root, "WORKPLANE.json"), applied: true }));
         state.exitCode = EXIT_OK;
       } catch (error) {
         if (error instanceof CliError) throw error;

@@ -48,8 +48,22 @@ fi
 
 mkdir -p "$RESTORE_ROOT"
 STAGE="$(mktemp -d "$RESTORE_ROOT/.restore.XXXXXX")"
-trap 'rm -rf "$STAGE"' EXIT
 STAGED_SOURCE="$STAGE/source"
+PREVIOUS="$STAGE/previous-source"
+SOURCE_REPLACEMENT_STARTED=false
+COMMITTED=false
+cleanup() {
+  status=$?
+  trap - EXIT INT TERM
+  if [[ "$COMMITTED" != true && "$SOURCE_REPLACEMENT_STARTED" == true ]]; then
+    rm -rf "$SOURCE"
+    if [[ -e "$PREVIOUS" ]]; then mv "$PREVIOUS" "$SOURCE"; fi
+  fi
+  rm -rf "$STAGE"
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 mkdir -p "$STAGED_SOURCE/skill/workplane"
 rsync -a "$PAYLOAD/" "$STAGED_SOURCE/"
 rsync -a \
@@ -65,23 +79,20 @@ rsync -a \
   npm ci --omit=dev --no-audit --no-fund
 )
 
-PREVIOUS="$STAGE/previous-source"
+SOURCE_REPLACEMENT_STARTED=true
 if [[ -e "$SOURCE" ]]; then
   mv "$SOURCE" "$PREVIOUS"
 fi
 if ! mv "$STAGED_SOURCE" "$SOURCE"; then
-  if [[ -e "$PREVIOUS" ]]; then mv "$PREVIOUS" "$SOURCE"; fi
   exit 4
 fi
 
 if ! node "$SOURCE/scripts/install-skill.mjs" \
   --skills-dir "$INSTALLED_SKILLS" \
   --bin-dir "$BIN_DIR"; then
-  rm -rf "$SOURCE"
-  if [[ -e "$PREVIOUS" ]]; then mv "$PREVIOUS" "$SOURCE"; fi
   exit 5
 fi
 
-rm -rf "$PREVIOUS" "$STAGE"
-trap - EXIT
+COMMITTED=true
+rm -rf "$PREVIOUS"
 printf 'Workplane restored. Start a new Pi session or run /reload.\n'

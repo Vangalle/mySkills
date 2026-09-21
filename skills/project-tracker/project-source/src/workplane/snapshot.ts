@@ -94,16 +94,24 @@ export function buildWorkplaneSnapshot(evidence: ProjectEvidence): WorkplaneTrac
 }
 
 /**
- * Hash only the reviewed structure: Project Goal establishment plus Goal and
- * Design identity/ancestry. Daily progress, acceptance completion, Git HEAD and
- * verification changes must not invalidate a reviewed definition preview.
+ * Hash only reviewed definitions: Project Goal, Feature Goal and Design
+ * identity/content, explicit ancestry, source path and acceptance meaning/state.
+ * Daily Progress, Git HEAD and verification changes must not invalidate a
+ * reviewed definition preview.
  */
 export function trackerStructureHash(snapshot: WorkplaneTrackerSnapshot): string {
   const structure = [
     snapshot.projectGoal?.statement ?? null,
     snapshot.goals.map((goal) => [
       goal.id,
-      goal.designs.map((design) => [design.id, design.parents ?? null]),
+      goal.title,
+      goal.designs.map((design) => [
+        design.id,
+        design.title,
+        design.path,
+        design.parents ?? null,
+        design.acceptance.map((item) => [item.id, item.criterion, item.complete]),
+      ]),
     ]),
   ];
   return createHash("sha256").update(JSON.stringify(structure)).digest("hex");

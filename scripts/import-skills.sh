@@ -3,11 +3,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_ROOT="$ROOT/skills"
-ALL_SKILLS=(explain-with-diagrams project-tracker obsidian-learning writing-technical-reports)
+ALL_SKILLS=(explain-with-diagrams project-tracker workplane obsidian-learning writing-technical-reports)
 
 is_managed() {
   case "$1" in
-    explain-with-diagrams|project-tracker|obsidian-learning|writing-technical-reports) return 0 ;;
+    explain-with-diagrams|project-tracker|workplane|obsidian-learning|writing-technical-reports) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -18,7 +18,10 @@ source_for() {
       printf '%s\n' "${MYSKILLS_EXPLAIN_WITH_DIAGRAMS_SOURCE:-$HOME/.pi/agent/skills/explain-with-diagrams}"
       ;;
     project-tracker)
-      printf '%s\n' "${MYSKILLS_PROJECT_TRACKER_SOURCE:-$HOME/.pi/agent/skills/project-tracker}"
+      printf '%s\n' "${MYSKILLS_PROJECT_TRACKER_SOURCE:-$HOME/Projects/project-tracker/project-tracker/skill/project-tracker}"
+      ;;
+    workplane)
+      printf '%s\n' "${MYSKILLS_WORKPLANE_SOURCE:-$HOME/Projects/project-tracker/workplane/skill/workplane}"
       ;;
     obsidian-learning)
       printf '%s\n' "${MYSKILLS_OBSIDIAN_LEARNING_SOURCE:-$HOME/Projects/skill-obsidian-learner/obsidian-learning}"
@@ -31,6 +34,9 @@ source_for() {
 
 project_tracker_project_source() {
   printf '%s\n' "${MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE:-$HOME/Projects/project-tracker/project-tracker}"
+}
+workplane_project_source() {
+  printf '%s\n' "${MYSKILLS_WORKPLANE_PROJECT_SOURCE:-$HOME/Projects/project-tracker/workplane}"
 }
 
 if [[ "$#" -eq 0 ]]; then
@@ -71,6 +77,28 @@ for skill in "${selected[@]}"; do
     done
     [[ -r "$ROOT/templates/project-tracker/restore-project-tracker.sh" ]] || {
       echo 'Project Tracker restoration template is missing' >&2
+      exit 3
+    }
+  elif [[ "$skill" == workplane ]]; then
+    project_source="$(workplane_project_source)"
+    required_project_files=(
+      package.json
+      package-lock.json
+      src/cli.mjs
+      src/contracts.mjs
+      src/build.mjs
+      src/render.mjs
+      src/viewer.js
+      scripts/install-skill.mjs
+    )
+    for path in "${required_project_files[@]}"; do
+      [[ -r "$project_source/$path" ]] || {
+        echo "invalid Workplane project source: missing $project_source/$path" >&2
+        exit 3
+      }
+    done
+    [[ -r "$ROOT/templates/workplane/restore-workplane.sh" ]] || {
+      echo 'Workplane restoration template is missing' >&2
       exit 3
     }
   fi
@@ -127,6 +155,20 @@ for skill in "${selected[@]}"; do
     mkdir -p "$STAGE/new/$skill/scripts"
     cp -p "$ROOT/templates/project-tracker/restore-project-tracker.sh" \
       "$STAGE/new/$skill/scripts/restore-project-tracker.sh"
+  elif [[ "$skill" == workplane ]]; then
+    project_source="$(workplane_project_source)"
+    payload="$STAGE/new/$skill/project-source"
+    mkdir -p "$payload/src" "$payload/scripts"
+    for path in cli.mjs contracts.mjs build.mjs render.mjs viewer.js; do
+      cp -p "$project_source/src/$path" "$payload/src/$path"
+    done
+    for path in package.json package-lock.json; do
+      cp -p "$project_source/$path" "$payload/$path"
+    done
+    cp -p "$project_source/scripts/install-skill.mjs" "$payload/scripts/install-skill.mjs"
+    mkdir -p "$STAGE/new/$skill/scripts"
+    cp -p "$ROOT/templates/workplane/restore-workplane.sh" \
+      "$STAGE/new/$skill/scripts/restore-workplane.sh"
   fi
 done
 

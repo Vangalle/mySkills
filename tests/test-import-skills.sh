@@ -6,10 +6,14 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/myskills-import-test.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 REPO="$TMP/repo"
 PROJECT_SOURCE="$TMP/sources/project-tracker-project"
-mkdir -p "$REPO/scripts" "$REPO/skills" "$REPO/templates/project-tracker" "$TMP/sources"
+WORKPLANE_PROJECT_SOURCE="$TMP/sources/workplane-project"
+mkdir -p "$REPO/scripts" "$REPO/skills" "$REPO/templates/project-tracker" \
+  "$REPO/templates/workplane" "$TMP/sources"
 cp "$ROOT/scripts/import-skills.sh" "$REPO/scripts/import-skills.sh"
 cp "$ROOT/templates/project-tracker/restore-project-tracker.sh" \
   "$REPO/templates/project-tracker/restore-project-tracker.sh"
+printf '#!/usr/bin/env bash\n' > "$REPO/templates/workplane/restore-workplane.sh"
+chmod +x "$REPO/templates/workplane/restore-workplane.sh"
 
 make_skill() {
   name="$1"
@@ -32,7 +36,7 @@ snapshot() {
   done)
 }
 
-for name in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
+for name in explain-with-diagrams project-tracker workplane obsidian-learning writing-technical-reports; do
   make_skill "$name"
 done
 WRITING_SOURCE="$TMP/sources/writing-technical-reports"
@@ -76,9 +80,24 @@ printf 'forbidden\n' > "$PROJECT_SOURCE/docs/design.md"
 printf 'forbidden\n' > "$PROJECT_SOURCE/skill/codegraph/SKILL.md"
 printf 'forbidden\n' > "$PROJECT_SOURCE/dist/cli.js"
 
+mkdir -p "$WORKPLANE_PROJECT_SOURCE/src" "$WORKPLANE_PROJECT_SOURCE/scripts" \
+  "$WORKPLANE_PROJECT_SOURCE/tests" "$WORKPLANE_PROJECT_SOURCE/node_modules" \
+  "$WORKPLANE_PROJECT_SOURCE/test-results"
+for path in cli.mjs contracts.mjs build.mjs render.mjs viewer.js; do
+  printf '%s\n' "$path" > "$WORKPLANE_PROJECT_SOURCE/src/$path"
+done
+printf '{"name":"workplane"}\n' > "$WORKPLANE_PROJECT_SOURCE/package.json"
+printf '{"lockfileVersion":3}\n' > "$WORKPLANE_PROJECT_SOURCE/package-lock.json"
+printf 'installer\n' > "$WORKPLANE_PROJECT_SOURCE/scripts/install-skill.mjs"
+printf 'forbidden\n' > "$WORKPLANE_PROJECT_SOURCE/tests/build.test.mjs"
+printf 'forbidden\n' > "$WORKPLANE_PROJECT_SOURCE/node_modules/dependency.js"
+printf 'forbidden\n' > "$WORKPLANE_PROJECT_SOURCE/test-results/result.json"
+
 export MYSKILLS_EXPLAIN_WITH_DIAGRAMS_SOURCE="$TMP/sources/explain-with-diagrams"
 export MYSKILLS_PROJECT_TRACKER_SOURCE="$TMP/sources/project-tracker"
 export MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE="$PROJECT_SOURCE"
+export MYSKILLS_WORKPLANE_SOURCE="$TMP/sources/workplane"
+export MYSKILLS_WORKPLANE_PROJECT_SOURCE="$WORKPLANE_PROJECT_SOURCE"
 export MYSKILLS_OBSIDIAN_LEARNING_SOURCE="$TMP/sources/obsidian-learning"
 export MYSKILLS_WRITING_TECHNICAL_REPORTS_SOURCE="$TMP/sources/writing-technical-reports"
 
@@ -87,13 +106,13 @@ before="$(snapshot "$TMP/sources")"
 after="$(snapshot "$TMP/sources")"
 [[ "$before" == "$after" ]] || { echo 'sources changed' >&2; exit 1; }
 
-for name in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
+for name in explain-with-diagrams project-tracker workplane obsidian-learning writing-technical-reports; do
   [[ -f "$REPO/skills/$name/SKILL.md" ]] || {
     echo "missing imported skill: $name" >&2
     exit 1
   }
 done
-for name in explain-with-diagrams project-tracker obsidian-learning; do
+for name in explain-with-diagrams project-tracker workplane obsidian-learning; do
   [[ -f "$REPO/skills/$name/value.txt" ]]
 done
 [[ ! -e "$REPO/skills/project-tracker/.project-tracker-source.json" ]]
@@ -121,6 +140,16 @@ done
 [[ -x "$REPO/skills/project-tracker/scripts/restore-project-tracker.sh" ]]
 for path in web/src/App.test.tsx tests/test.ts docs/design.md skill/codegraph/SKILL.md dist/cli.js; do
   [[ ! -e "$PAYLOAD/$path" ]] || { echo "unexpected payload file: $path" >&2; exit 1; }
+done
+
+WORKPLANE_PAYLOAD="$REPO/skills/workplane/project-source"
+for path in package.json package-lock.json scripts/install-skill.mjs \
+  src/cli.mjs src/contracts.mjs src/build.mjs src/render.mjs src/viewer.js; do
+  [[ -f "$WORKPLANE_PAYLOAD/$path" ]] || { echo "missing Workplane payload file: $path" >&2; exit 1; }
+done
+[[ -x "$REPO/skills/workplane/scripts/restore-workplane.sh" ]]
+for path in tests/build.test.mjs node_modules/dependency.js test-results/result.json; do
+  [[ ! -e "$WORKPLANE_PAYLOAD/$path" ]] || { echo "unexpected Workplane payload file: $path" >&2; exit 1; }
 done
 
 printf 'stale\n' > "$REPO/skills/project-tracker/stale.txt"

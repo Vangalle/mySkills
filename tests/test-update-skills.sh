@@ -28,7 +28,7 @@ snapshot() {
   done)
 }
 
-for name in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
+for name in explain-with-diagrams project-tracker workplane obsidian-learning writing-technical-reports; do
   make_skill "$name"
 done
 PROJECT_SOURCE="$SOURCES/project-tracker-project"
@@ -44,23 +44,35 @@ printf 'config\n' > "$PROJECT_SOURCE/vite.config.ts"
 printf '{}\n' > "$PROJECT_SOURCE/web/tsconfig.json"
 printf 'config\n' > "$PROJECT_SOURCE/web/vite.config.ts"
 printf 'installer\n' > "$PROJECT_SOURCE/scripts/install-skill.mjs"
+WORKPLANE_PROJECT_SOURCE="$SOURCES/workplane-project"
+mkdir -p "$WORKPLANE_PROJECT_SOURCE/src" "$WORKPLANE_PROJECT_SOURCE/scripts"
+for path in cli.mjs contracts.mjs build.mjs render.mjs viewer.js; do
+  printf '%s\n' "$path" > "$WORKPLANE_PROJECT_SOURCE/src/$path"
+done
+printf '{"name":"workplane"}\n' > "$WORKPLANE_PROJECT_SOURCE/package.json"
+printf '{"lockfileVersion":3}\n' > "$WORKPLANE_PROJECT_SOURCE/package-lock.json"
+printf 'installer\n' > "$WORKPLANE_PROJECT_SOURCE/scripts/install-skill.mjs"
 
 export MYSKILLS_EXPLAIN_WITH_DIAGRAMS_SOURCE="$SOURCES/explain-with-diagrams"
 export MYSKILLS_PROJECT_TRACKER_SOURCE="$SOURCES/project-tracker"
 export MYSKILLS_PROJECT_TRACKER_PROJECT_SOURCE="$PROJECT_SOURCE"
+export MYSKILLS_WORKPLANE_SOURCE="$SOURCES/workplane"
+export MYSKILLS_WORKPLANE_PROJECT_SOURCE="$WORKPLANE_PROJECT_SOURCE"
 export MYSKILLS_OBSIDIAN_LEARNING_SOURCE="$SOURCES/obsidian-learning"
 export MYSKILLS_WRITING_TECHNICAL_REPORTS_SOURCE="$SOURCES/writing-technical-reports"
 
-mkdir -p "$WORK/scripts" "$WORK/tests" "$WORK/templates/project-tracker"
+mkdir -p "$WORK/scripts" "$WORK/tests" "$WORK/templates/project-tracker" "$WORK/templates/workplane"
 cp "$ROOT/scripts/import-skills.sh" "$WORK/scripts/import-skills.sh"
 cp "$ROOT/scripts/update-skills.sh" "$WORK/scripts/update-skills.sh"
 cp "$ROOT/templates/project-tracker/restore-project-tracker.sh" \
   "$WORK/templates/project-tracker/restore-project-tracker.sh"
+cp "$ROOT/templates/workplane/restore-workplane.sh" \
+  "$WORK/templates/workplane/restore-workplane.sh"
 cat > "$WORK/tests/fixture-validate.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ "${FAIL_VALIDATION:-0}" != 1 ]] || exit 1
-for skill in explain-with-diagrams project-tracker obsidian-learning writing-technical-reports; do
+for skill in explain-with-diagrams project-tracker workplane obsidian-learning writing-technical-reports; do
   [[ -f "skills/$skill/SKILL.md" ]]
 done
 EOF

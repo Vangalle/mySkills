@@ -2,9 +2,13 @@
   "name": "myskills-maintainer",
   "version": "0.0.0",
   "private": true,
+  "keywords": ["pi-package"],
+  "pi": {
+    "skills": ["./skills"]
+  },
   "scripts": {
     "import-skills": "bash scripts/import-skills.sh",
     "update-skills": "bash scripts/update-skills.sh",
-    "test": "bash tests/verify-repository.sh && bash tests/test-import-skills.sh && bash tests/test-restore-project-tracker.sh && bash tests/test-update-skills.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
+    "test": "bash tests/verify-repository.sh && bash tests/test-import-skills.sh && bash tests/test-restore-project-tracker.sh && bash tests/test-restore-workplane.sh && bash tests/test-update-skills.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
   }
 }

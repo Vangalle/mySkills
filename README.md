@@ -1,11 +1,12 @@
 # mySkills
 
-A public bundle of four independently maintained Agent Skills for Pi:
+A public bundle of five independently maintained Agent Skills for Pi:
 
 | Skill | Purpose |
 | --- | --- |
 | `explain-with-diagrams` | Make consequential task and system interpretations inspectable with Mermaid diagrams. |
 | `project-tracker` | Manage project goals, design history, progress, verification evidence, and status. |
+| `workplane` | Define and render an optional Work Unit graph connected to Tracker Designs. |
 | `obsidian-learning` | Support structured learning and note editing in Obsidian vaults. |
 | `writing-technical-reports` | Write rigorous Chinese technical and scientific reports from supplied material. |
 
@@ -13,7 +14,17 @@ Review skill contents before installation: skills can instruct an agent to run c
 
 ## Install
 
-List available skills:
+Install this repository as a Pi git package:
+
+```bash
+pi install git:github.com/Vangalle/mySkills
+```
+
+Run `pi update --extension git:github.com/Vangalle/mySkills` after a new release.
+The package loads all Skill documents; Project Tracker and Workplane have separate
+runtime restore steps below. Run `/reload` or start a new Pi session after changes.
+
+Alternatively, list skills through the cross-agent installer:
 
 ```bash
 npx skills add Vangalle/mySkills --list
@@ -52,7 +63,9 @@ Install all bundled skills for every detected agent:
 npx skills add Vangalle/mySkills --all -g
 ```
 
-## Restore the Project Tracker runtime
+## Restore executable runtimes
+
+### Project Tracker
 
 The Project Tracker skill includes the minimal source needed to rebuild its CLI, dashboard, and Pi extension. After installing the skill, restore the complete runtime without an LLM:
 
@@ -60,11 +73,27 @@ The Project Tracker skill includes the minimal source needed to rebuild its CLI,
 bash ~/.pi/agent/skills/project-tracker/scripts/restore-project-tracker.sh --yes
 ```
 
-This deterministic command shows its destinations, runs `npm ci` (which downloads dependencies and may run their installation scripts), builds the CLI and dashboard, and invokes Project Tracker's own installer. It requires Node.js 22.5–24, npm, and rsync. Run `/reload` in Pi or start a new session afterward.
+This deterministic command shows its destinations, runs `npm ci` (which downloads dependencies and may run their installation scripts), builds the CLI and dashboard, and invokes Project Tracker's own installer. It requires Node.js 22.5–24, npm, and rsync.
+
+### Workplane
+
+Workplane is independent and optional. Restore only its CLI/runtime with:
+
+```bash
+bash ~/.pi/agent/skills/workplane/scripts/restore-workplane.sh --yes
+```
+
+For a Pi git package installation, run the same script from the package checkout's
+`skills/workplane/scripts/` directory. It installs Workplane under its own
+`~/.local/share/workplane` source and `~/.local/bin/workplane` launcher; it does
+not install or modify Tracker.
 
 ## Maintainer update
 
-The local skill projects remain independent sources of truth. This repository only imports copies and never modifies those sources. Whenever `project-tracker` is selected, its required rebuild files are imported automatically from `$HOME/Projects/project-tracker/project-tracker`.
+The local skill projects remain independent sources of truth. This repository only imports copies and never modifies those sources. Whenever `project-tracker` or `workplane` is selected, its required rebuild files
+are imported automatically from `$HOME/Projects/project-tracker/project-tracker`
+or `$HOME/Projects/project-tracker/workplane` respectively. Skill text is imported
+from those source repositories, never from a potentially stale installed copy.
 
 No LLM is involved:
 

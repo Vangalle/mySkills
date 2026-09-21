@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-ALL_SKILLS=(explain-with-diagrams project-tracker obsidian-learning writing-technical-reports)
+ALL_SKILLS=(explain-with-diagrams project-tracker workplane obsidian-learning writing-technical-reports)
 
 if [[ "$#" -eq 0 ]]; then
   selected=("${ALL_SKILLS[@]}")
@@ -13,7 +13,7 @@ fi
 
 for skill in "${selected[@]}"; do
   case "$skill" in
-    explain-with-diagrams|project-tracker|obsidian-learning|writing-technical-reports) ;;
+    explain-with-diagrams|project-tracker|workplane|obsidian-learning|writing-technical-reports) ;;
     *) echo "unknown skill: $skill" >&2; exit 2 ;;
   esac
 done
@@ -44,7 +44,7 @@ if [[ -z "$(git status --porcelain -- "${paths[@]}")" ]]; then
 fi
 
 git add -- "${paths[@]}"
-if [[ -n "$(git diff --cached --name-only | grep -vE '^skills/(explain-with-diagrams|project-tracker|obsidian-learning|writing-technical-reports)/' || true)" ]]; then
+if [[ -n "$(git diff --cached --name-only | grep -vE '^skills/(explain-with-diagrams|project-tracker|workplane|obsidian-learning|writing-technical-reports)/' || true)" ]]; then
   echo 'refusing to commit paths outside managed skill snapshots' >&2
   exit 13
 fi

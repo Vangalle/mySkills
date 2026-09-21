@@ -59,17 +59,26 @@ COMMITTED=false
 mkdir -p "$STAGED_SOURCE/skill/project-tracker"
 cleanup() {
   status=$?
+  keep_stage=false
   trap - EXIT INT TERM
   if [[ "$COMMITTED" != true ]]; then
     if [[ -e "$PREVIOUS" ]]; then
-      rm -rf "$SOURCE"
-      mv "$PREVIOUS" "$SOURCE"
+      if [[ ! -e "$STAGED_SOURCE" ]]; then
+        rm -rf "$SOURCE"
+        mv "$PREVIOUS" "$SOURCE"
+      elif [[ ! -e "$SOURCE" ]]; then
+        mv "$PREVIOUS" "$SOURCE"
+      else
+        echo "rollback requires inspection: destination reappeared; previous source retained at $PREVIOUS" >&2
+        keep_stage=true
+        status=6
+      fi
     elif [[ ! -e "$STAGED_SOURCE" ]]; then
       # No previous runtime existed and the staged source was already swapped in.
       rm -rf "$SOURCE"
     fi
   fi
-  rm -rf "$STAGE"
+  if [[ "$keep_stage" != true ]]; then rm -rf "$STAGE"; fi
   exit "$status"
 }
 trap cleanup EXIT

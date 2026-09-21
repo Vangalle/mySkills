@@ -65,21 +65,33 @@ npx skills add Vangalle/mySkills --all -g
 
 ## Restore executable runtimes
 
-Pi clones the global git package under its git checkout directory. After the install above,
-locate both restore scripts deterministically with:
+Set Pi's agent root first:
 
 ```bash
 PI_AGENT_ROOT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+```
+
+If you used `pi install git:github.com/Vangalle/mySkills`, Pi cloned the global git
+package under its checkout directory:
+
+```bash
 MYSKILLS_CHECKOUT="$PI_AGENT_ROOT/git/github.com/Vangalle/mySkills"
 test -d "$MYSKILLS_CHECKOUT/skills"
 ```
+
+If you instead used `npx skills add ... -g -a pi`, the copied skills normally live
+under `$PI_AGENT_ROOT/skills`; use those paths shown below rather than
+`$MYSKILLS_CHECKOUT`.
 
 ### Project Tracker
 
 The Project Tracker skill includes the minimal source needed to rebuild its CLI, dashboard, and Pi extension. Restore the complete runtime without an LLM:
 
 ```bash
+# Pi git package installation:
 bash "$MYSKILLS_CHECKOUT/skills/project-tracker/scripts/restore-project-tracker.sh" --yes
+# npx skills installation for Pi:
+bash "$PI_AGENT_ROOT/skills/project-tracker/scripts/restore-project-tracker.sh" --yes
 ```
 
 This deterministic command shows its destinations, runs `npm ci` (which downloads dependencies and may run their installation scripts), builds the CLI and dashboard, and invokes Project Tracker's own installer. It requires Node.js 22.5–24, npm, and rsync.
@@ -89,7 +101,10 @@ This deterministic command shows its destinations, runs `npm ci` (which download
 Workplane is independent and optional. Restore only its CLI/runtime with:
 
 ```bash
+# Pi git package installation:
 bash "$MYSKILLS_CHECKOUT/skills/workplane/scripts/restore-workplane.sh" --yes
+# npx skills installation for Pi:
+bash "$PI_AGENT_ROOT/skills/workplane/scripts/restore-workplane.sh" --yes
 ```
 
 It installs Workplane under its own `~/.local/share/workplane` source and

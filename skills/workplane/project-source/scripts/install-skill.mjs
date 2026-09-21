@@ -6,7 +6,7 @@
  * removes a Project Tracker extension; the two components are owned and removed
  * separately.
  */
-import { chmod, cp, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -87,13 +87,16 @@ async function snapshot(path) {
   return info ? `${info.dev}:${info.ino}:${info.mtimeMs}:${info.size}` : null;
 }
 
-export async function transactionalRemove(entries, operations = { rename, rm }) {
+export async function transactionalRemove(entries, operations = { rename, rm }, validate = async () => {}) {
   const moved = [];
   try {
     for (const entry of entries) {
       await operations.rename(entry.path, entry.backup);
       moved.push(entry);
     }
+    // Validate the exact filesystem objects that will be purged, not paths that
+    // could have been replaced after the initial ownership check.
+    await validate();
   } catch (error) {
     const failures = [];
     for (const entry of moved.reverse()) {
@@ -106,9 +109,14 @@ export async function transactionalRemove(entries, operations = { rename, rm }) 
     throw error;
   }
 
+  // Staging is the uninstall commit. A failed backup purge must not report that
+  // the live installation was partially restored; retain the backup for cleanup.
+  const cleanupFailures = [];
   for (const entry of moved) {
-    await operations.rm(entry.backup, { recursive: entry.recursive, force: true });
+    try { await operations.rm(entry.backup, { recursive: entry.recursive, force: true }); }
+    catch (error) { cleanupFailures.push(`${entry.backup}: ${error.message}`); }
   }
+  return cleanupFailures;
 }
 
 async function main() {
@@ -130,13 +138,20 @@ async function main() {
       throw new Error(`refusing to uninstall ${target}: no owned installation found`);
     }
     const transaction = randomUUID();
+    const targetBackup = `${target}.uninstall-${transaction}`;
+    const cliBackup = `${cli}.uninstall-${transaction}`;
+    const cliMarkerBackup = `${cliMarker}.uninstall-${transaction}`;
     const entries = [
-      targetInfo && { path: target, backup: `${target}.uninstall-${transaction}`, recursive: true },
-      cliInfo && { path: cli, backup: `${cli}.uninstall-${transaction}`, recursive: false },
-      cliMarkerInfo && { path: cliMarker, backup: `${cliMarker}.uninstall-${transaction}`, recursive: false },
+      targetInfo && { path: target, backup: targetBackup, recursive: true },
+      cliInfo && { path: cli, backup: cliBackup, recursive: false },
+      cliMarkerInfo && { path: cliMarker, backup: cliMarkerBackup, recursive: false },
     ].filter(Boolean);
-    await transactionalRemove(entries);
+    const cleanupFailures = await transactionalRemove(entries, { rename, rm }, async () => {
+      if (targetInfo) await requireOwnedDirectory(targetBackup, source, action);
+      if (cliInfo) await requireOwnedCli(cliBackup, cliMarkerBackup, source, action);
+    });
     console.log(`uninstalled ${NAME} → ${target}`);
+    for (const failure of cleanupFailures) console.warn(`uninstall backup requires cleanup: ${failure}`);
     return;
   }
 
@@ -200,7 +215,13 @@ async function main() {
   console.log(`Pi exposes /skill:${NAME}; run /reload or a new session to load it.`);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === installer) {
+async function invokedDirectly() {
+  if (!process.argv[1]) return false;
+  try { return (await realpath(resolve(process.argv[1]))) === (await realpath(installer)); }
+  catch { return false; }
+}
+
+if (await invokedDirectly()) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

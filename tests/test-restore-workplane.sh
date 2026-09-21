@@ -62,6 +62,15 @@ if printf 'no\n' | HOME="$HOME_DIR" RESTORE_LOG="$LOG" \
   exit 1
 fi
 [[ ! -e "$RESTORE_ROOT/source" ]]
+if HOME="$HOME_DIR" RESTORE_LOG="$LOG" RESTORE_SIGNAL=1 \
+  bash "$BUNDLE/scripts/restore-workplane.sh" --yes; then
+  echo 'signalled first restoration unexpectedly succeeded' >&2
+  exit 1
+fi
+[[ ! -e "$RESTORE_ROOT/source" ]] || {
+  echo 'signalled first restoration left a partial source' >&2
+  exit 1
+}
 
 HOME="$HOME_DIR" RESTORE_LOG="$LOG" \
   bash "$BUNDLE/scripts/restore-workplane.sh" --yes

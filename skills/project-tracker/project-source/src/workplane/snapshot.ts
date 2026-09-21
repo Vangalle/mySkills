@@ -110,7 +110,7 @@ export function trackerStructureHash(snapshot: WorkplaneTrackerSnapshot): string
         design.title,
         design.path,
         design.parents ?? null,
-        design.acceptance.map((item) => [item.id, item.criterion, item.complete]),
+        design.acceptance.map((item) => [item.id, item.criterion, item.complete, item.evidenceIds]),
       ]),
     ]),
   ];

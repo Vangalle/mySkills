@@ -50,21 +50,25 @@ mkdir -p "$RESTORE_ROOT"
 STAGE="$(mktemp -d "$RESTORE_ROOT/.restore.XXXXXX")"
 STAGED_SOURCE="$STAGE/source"
 PREVIOUS="$STAGE/previous-source"
-SOURCE_REPLACEMENT_STARTED=false
 COMMITTED=false
+mkdir -p "$STAGED_SOURCE/skill/workplane"
 cleanup() {
   status=$?
   trap - EXIT INT TERM
-  if [[ "$COMMITTED" != true && "$SOURCE_REPLACEMENT_STARTED" == true ]]; then
-    rm -rf "$SOURCE"
-    if [[ -e "$PREVIOUS" ]]; then mv "$PREVIOUS" "$SOURCE"; fi
+  if [[ "$COMMITTED" != true ]]; then
+    if [[ -e "$PREVIOUS" ]]; then
+      rm -rf "$SOURCE"
+      mv "$PREVIOUS" "$SOURCE"
+    elif [[ ! -e "$STAGED_SOURCE" ]]; then
+      # No previous runtime existed and the staged source was already swapped in.
+      rm -rf "$SOURCE"
+    fi
   fi
   rm -rf "$STAGE"
   exit "$status"
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
-mkdir -p "$STAGED_SOURCE/skill/workplane"
 rsync -a "$PAYLOAD/" "$STAGED_SOURCE/"
 rsync -a \
   --exclude='project-source/' \
@@ -79,7 +83,6 @@ rsync -a \
   npm ci --omit=dev --no-audit --no-fund
 )
 
-SOURCE_REPLACEMENT_STARTED=true
 if [[ -e "$SOURCE" ]]; then
   mv "$SOURCE" "$PREVIOUS"
 fi

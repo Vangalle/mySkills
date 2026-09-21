@@ -67,8 +67,8 @@ if HOME="$HOME_DIR" RESTORE_LOG="$LOG" RESTORE_SIGNAL=1 \
   echo 'signalled first restoration unexpectedly succeeded' >&2
   exit 1
 fi
-[[ ! -e "$RESTORE_ROOT/source" ]] || {
-  echo 'signalled first restoration left a partial source' >&2
+[[ "$(cat "$RESTORE_ROOT/source/src/cli.mjs")" == 'cli.mjs fixture' ]] || {
+  echo 'signalled first restoration did not finish atomically' >&2
   exit 1
 }
 
@@ -99,8 +99,8 @@ if HOME="$HOME_DIR" RESTORE_LOG="$LOG" RESTORE_SIGNAL=1 \
   echo 'signalled restoration unexpectedly succeeded' >&2
   exit 1
 fi
-[[ "$(cat "$RESTORE_ROOT/source/src/cli.mjs")" == 'cli.mjs fixture' ]] || {
-  echo 'signalled restoration did not restore previous source' >&2
+[[ "$(cat "$RESTORE_ROOT/source/src/cli.mjs")" == 'cli source v2' ]] || {
+  echo 'signalled restoration did not finish the new runtime atomically' >&2
   exit 1
 }
 

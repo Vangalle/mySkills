@@ -101,7 +101,9 @@ export function App() {
         )}
         {selected !== null && page === "timeline" && <EvidenceTimeline projectId={selected} />}
         {selected !== null && page === "sessions" && <SessionIndex projectId={selected} />}
-        {selected !== null && page === "workplane" && <Workplane projectId={selected} />}
+        {selected !== null && page === "workplane" && (
+          <Workplane projectId={selected} key={`${selected}-${refreshKey}`} />
+        )}
       </main>
     </div>
   );

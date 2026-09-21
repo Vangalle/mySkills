@@ -7,7 +7,9 @@ trap 'rm -rf "$TMP"' EXIT
 BUNDLE="$TMP/bundle"
 HOME_DIR="$TMP/home"
 RESTORE_ROOT="$HOME_DIR/.local/share/project-tracker"
+PI_AGENT_ROOT="$HOME_DIR/custom-pi-agent"
 LOG="$TMP/installer-args.json"
+export PI_CODING_AGENT_DIR="$PI_AGENT_ROOT"
 mkdir -p "$BUNDLE/scripts" "$BUNDLE/references" "$BUNDLE/project-source/src/pi" \
   "$BUNDLE/project-source/web/src" "$BUNDLE/project-source/scripts" "$HOME_DIR"
 cp "$ROOT/templates/project-tracker/restore-project-tracker.sh" \
@@ -80,8 +82,8 @@ if HOME="$HOME_DIR" RESTORE_LOG="$LOG" RESTORE_SIGNAL=1 \
   echo 'signalled first restoration unexpectedly succeeded' >&2
   exit 1
 fi
-[[ ! -e "$RESTORE_ROOT/source" ]] || {
-  echo 'signalled first restoration left a partial source' >&2
+[[ "$(cat "$RESTORE_ROOT/source/src/cli.ts")" == 'cli source v1' ]] || {
+  echo 'signalled first restoration did not finish atomically' >&2
   exit 1
 }
 
@@ -101,7 +103,7 @@ const [log, root, home] = process.argv.slice(2);
 const args = JSON.parse(fs.readFileSync(log, 'utf8'));
 const expected = [
   '--skills-dir', `${root}/installed-skills`,
-  '--extensions-dir', `${home}/.pi/agent/extensions`,
+  '--extensions-dir', `${home}/custom-pi-agent/extensions`,
   '--bin-dir', `${home}/.local/bin`,
 ];
 if (JSON.stringify(args) !== JSON.stringify(expected)) {
@@ -115,8 +117,8 @@ if HOME="$HOME_DIR" RESTORE_LOG="$LOG" RESTORE_SIGNAL=1 \
   echo 'signalled restoration unexpectedly succeeded' >&2
   exit 1
 fi
-[[ "$(cat "$RESTORE_ROOT/source/src/cli.ts")" == 'cli source v1' ]] || {
-  echo 'signalled restoration did not restore previous source' >&2
+[[ "$(cat "$RESTORE_ROOT/source/src/cli.ts")" == 'cli source v2' ]] || {
+  echo 'signalled restoration did not finish the new runtime atomically' >&2
   exit 1
 }
 

@@ -51,6 +51,7 @@ STAGE="$(mktemp -d "$RESTORE_ROOT/.restore.XXXXXX")"
 STAGED_SOURCE="$STAGE/source"
 PREVIOUS="$STAGE/previous-source"
 COMMITTED=false
+INTERRUPTED=false
 mkdir -p "$STAGED_SOURCE/skill/workplane"
 cleanup() {
   status=$?
@@ -77,7 +78,7 @@ cleanup() {
   exit "$status"
 }
 trap cleanup EXIT
-trap 'exit 130' INT TERM
+trap 'INTERRUPTED=true' INT TERM
 rsync -a "$PAYLOAD/" "$STAGED_SOURCE/"
 rsync -a \
   --exclude='project-source/' \
@@ -91,6 +92,8 @@ rsync -a \
   cd "$STAGED_SOURCE"
   npm ci --omit=dev --no-audit --no-fund
 )
+
+if [[ "$INTERRUPTED" == true ]]; then exit 130; fi
 
 if [[ -e "$SOURCE" ]]; then
   mv "$SOURCE" "$PREVIOUS"
@@ -107,4 +110,8 @@ fi
 
 COMMITTED=true
 rm -rf "$PREVIOUS"
+if [[ "$INTERRUPTED" == true ]]; then
+  echo 'Workplane restoration completed before handling the interrupt.' >&2
+  exit 130
+fi
 printf 'Workplane restored. Start a new Pi session or run /reload.\n'

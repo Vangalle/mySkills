@@ -17,6 +17,10 @@ const RUNTIME_MARKER = ".project-tracker-runtime-source.json";
 const EXTENSION_MARKER = ".project-tracker-extension-source.json";
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+let interruptedBy = null;
+function throwIfInterrupted() {
+  if (interruptedBy) throw new Error(`installation interrupted by ${interruptedBy}`);
+}
 
 async function stat(path) {
   try { return await lstat(path); } catch (error) { if (error.code === "ENOENT") return null; throw error; }
@@ -154,16 +158,19 @@ async function main() {
         await writeFile(join(entries[3].stage, EXTENSION_MARKER), JSON.stringify({ source, sha256: digest(adapter) }, null, 2) + "\n");
       }
     }
+    throwIfInterrupted();
     await checkOwnership();
     for (const entry of entries) if (entry.before !== await snapshot(entry.target)) throw new Error(`installation changed while staging: ${entry.target}; retry after inspecting it`);
     for (const entry of entries) {
       if (entry.before !== null) {
         entry.backup = `${entry.target}.backup-${transaction}`;
         await rename(entry.target, entry.backup);
+        throwIfInterrupted();
       }
       if (entry.stage) {
         await rename(entry.stage, entry.target);
         entry.committed = true;
+        throwIfInterrupted();
       }
     }
   } catch (error) {
@@ -213,6 +220,7 @@ async function main() {
       console.log("Non-interactive install: Project Tracker only. Pass --confirm-workplane to add Workplane.");
     }
   }
+  throwIfInterrupted();
 }
 
 function runWorkplaneInstaller(installer, skillsDir, binDir) {
@@ -239,4 +247,14 @@ async function promptWorkplane(offer) {
     process.stdin.resume();
   });
 }
-main().catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });
+const onSigint = () => { interruptedBy = "SIGINT"; };
+const onSigterm = () => { interruptedBy = "SIGTERM"; };
+process.on("SIGINT", onSigint);
+process.on("SIGTERM", onSigterm);
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+}).finally(() => {
+  process.off("SIGINT", onSigint);
+  process.off("SIGTERM", onSigterm);
+});

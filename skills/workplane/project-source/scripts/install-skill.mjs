@@ -19,6 +19,10 @@ const MARKER = ".workplane-source.json";
 const CLI_MARKER = ".workplane-cli-source.json";
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+let interruptedBy = null;
+function throwIfInterrupted() {
+  if (interruptedBy) throw new Error(`installation interrupted by ${interruptedBy}`);
+}
 
 async function stat(path) {
   try { return await lstat(path); } catch (error) { if (error.code === "ENOENT") return null; throw error; }
@@ -93,10 +97,12 @@ export async function transactionalRemove(entries, operations = { rename, rm }, 
     for (const entry of entries) {
       await operations.rename(entry.path, entry.backup);
       moved.push(entry);
+      if (operations.check) await operations.check();
     }
     // Validate the exact filesystem objects that will be purged, not paths that
     // could have been replaced after the initial ownership check.
     await validate();
+    if (operations.check) await operations.check();
   } catch (error) {
     const failures = [];
     for (const entry of moved.reverse()) {
@@ -146,7 +152,7 @@ async function main() {
       cliInfo && { path: cli, backup: cliBackup, recursive: false },
       cliMarkerInfo && { path: cliMarker, backup: cliMarkerBackup, recursive: false },
     ].filter(Boolean);
-    const cleanupFailures = await transactionalRemove(entries, { rename, rm }, async () => {
+    const cleanupFailures = await transactionalRemove(entries, { rename, rm, check: throwIfInterrupted }, async () => {
       if (targetInfo) await requireOwnedDirectory(targetBackup, source, action);
       if (cliInfo) await requireOwnedCli(cliBackup, cliMarkerBackup, source, action);
     });
@@ -179,18 +185,28 @@ async function main() {
     await chmod(stageCli, 0o755);
 
     // Re-check ownership immediately before swapping so a concurrent edit is not clobbered.
+    throwIfInterrupted();
     await requireOwnedDirectory(target, source, action);
     await requireOwnedCli(cli, cliMarker, source, action);
     if (before !== (await snapshot(target))) throw new Error(`installation changed while staging: ${target}`);
     if (cliBefore !== (await snapshot(cli))) throw new Error(`installation changed while staging: ${cli}`);
 
-    if (before !== null) await rename(target, backupSkill);
+    if (before !== null) {
+      await rename(target, backupSkill);
+      throwIfInterrupted();
+    }
     await rename(stageSkill, target);
     committedSkill = true;
-    if (cliBefore !== null) await rename(cli, backupCli);
+    throwIfInterrupted();
+    if (cliBefore !== null) {
+      await rename(cli, backupCli);
+      throwIfInterrupted();
+    }
     await rename(stageCli, cli);
     committedCli = true;
+    throwIfInterrupted();
     await writeFile(cliMarker, `${JSON.stringify({ source, sha256: digest(launcher) }, null, 2)}\n`);
+    throwIfInterrupted();
   } catch (error) {
     const failures = [];
     try {
@@ -217,13 +233,23 @@ async function main() {
 
 async function invokedDirectly() {
   if (!process.argv[1]) return false;
-  try { return (await realpath(resolve(process.argv[1]))) === (await realpath(installer)); }
+  try {
+    const entry = process.argv[1].startsWith("file:") ? fileURLToPath(process.argv[1]) : resolve(process.argv[1]);
+    return (await realpath(entry)) === (await realpath(installer));
+  }
   catch { return false; }
 }
 
 if (await invokedDirectly()) {
+  const onSigint = () => { interruptedBy = "SIGINT"; };
+  const onSigterm = () => { interruptedBy = "SIGTERM"; };
+  process.on("SIGINT", onSigint);
+  process.on("SIGTERM", onSigterm);
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
+  }).finally(() => {
+    process.off("SIGINT", onSigint);
+    process.off("SIGTERM", onSigterm);
   });
 }

@@ -6,7 +6,8 @@ PAYLOAD="$SKILL_ROOT/project-source"
 RESTORE_ROOT="${PROJECT_TRACKER_RESTORE_ROOT:-$HOME/.local/share/project-tracker}"
 SOURCE="$RESTORE_ROOT/source"
 INSTALLED_SKILLS="$RESTORE_ROOT/installed-skills"
-EXTENSIONS_DIR="${PROJECT_TRACKER_EXTENSIONS_DIR:-$HOME/.pi/agent/extensions}"
+PI_AGENT_ROOT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+EXTENSIONS_DIR="${PROJECT_TRACKER_EXTENSIONS_DIR:-$PI_AGENT_ROOT/extensions}"
 BIN_DIR="${PROJECT_TRACKER_BIN_DIR:-$HOME/.local/bin}"
 CONFIRMED=false
 
@@ -56,6 +57,7 @@ STAGE="$(mktemp -d "$RESTORE_ROOT/.restore.XXXXXX")"
 STAGED_SOURCE="$STAGE/source"
 PREVIOUS="$STAGE/previous-source"
 COMMITTED=false
+INTERRUPTED=false
 mkdir -p "$STAGED_SOURCE/skill/project-tracker"
 cleanup() {
   status=$?
@@ -82,7 +84,7 @@ cleanup() {
   exit "$status"
 }
 trap cleanup EXIT
-trap 'exit 130' INT TERM
+trap 'INTERRUPTED=true' INT TERM
 rsync -a "$PAYLOAD/" "$STAGED_SOURCE/"
 rsync -a \
   --exclude='project-source/' \
@@ -97,6 +99,8 @@ rsync -a \
   npm run build
   npm run build:web
 )
+
+if [[ "$INTERRUPTED" == true ]]; then exit 130; fi
 
 if [[ -e "$SOURCE" ]]; then
   mv "$SOURCE" "$PREVIOUS"
@@ -114,4 +118,8 @@ fi
 
 COMMITTED=true
 rm -rf "$PREVIOUS"
+if [[ "$INTERRUPTED" == true ]]; then
+  echo 'Project Tracker restoration completed before handling the interrupt.' >&2
+  exit 130
+fi
 printf 'Project Tracker restored. Start a new Pi session or run /reload.\n'

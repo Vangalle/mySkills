@@ -335,10 +335,6 @@ export const DesignStateProposalSchema = ProjectStateProposalSchema.innerType().
   baseline: true, releaseState: true, boundaries: true, verification: true, references: true,
 }).extend({
   schemaVersion: z.literal(2), projectGoal: ProjectObjectiveSchema, goals: FeatureGoalsSchema,
-  legacyStatus: ProjectStateProposalSchema.innerType().pick({
-    executiveSummary: true, currentMilestone: true, workstreams: true,
-    activeWork: true, risks: true, nextActions: true,
-  }).optional(),
 }).strict();
 export type DesignStateProposal = z.infer<typeof DesignStateProposalSchema>;
 export const StateProposalSchema = z.union([ProjectStateProposalSchema, DesignStateProposalSchema]);
@@ -399,12 +395,14 @@ export const ParsedProjectStateSchema = z.object({
     .nullable(),
   releaseState: ReleaseStateSchema.nullable(),
   proposal: StateProposalSchema.nullable(),
-  /** Unknown human-authored sections preserved verbatim on round-trip. */
+  /** Human-authored sections outside the canonical structure, for the caller to archive. */
   unknownSections: z.array(z.object({
     title: z.string(), body: z.string(),
     // v1 parser provenance only; distinguishes container children from standalone sections.
     legacyNoteKind: z.enum(["intro", "child"]).optional(),
   })),
+  /** Why the document is not canonical, in plain language; absent when it parses. */
+  invalidReason: z.string().optional(),
 });
 export type ParsedProjectState = z.infer<typeof ParsedProjectStateSchema>;
 

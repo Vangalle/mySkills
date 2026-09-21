@@ -27,7 +27,12 @@ export const FeatureGoalSchema = z.object({
 export type FeatureGoal = z.infer<typeof FeatureGoalSchema>;
 const OriginSchema = z.object({ path: DocumentPathSchema, evidenceId: z.string().startsWith("document:") }).strict();
 export const ProjectObjectiveSchema = z.object({
-  statement: z.string().min(1), philosophy: OriginSchema, market: OriginSchema, reasoning: z.string().min(1),
+  statement: z.string().min(1),
+  origins: z.array(OriginSchema).min(1).refine(
+    (origins) => new Set(origins.map((origin) => origin.path)).size === origins.length,
+    { message: "同一个来源文档不能重复列出" },
+  ),
+  reasoning: z.string().min(1),
 }).strict().nullable();
 
 export const FeatureGoalsSchema = z.array(FeatureGoalSchema).superRefine((goals, ctx) => {

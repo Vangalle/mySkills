@@ -17,11 +17,14 @@ remember to invoke it.
    append. Leave real State untouched until that definition is established.
    Missing verificationAllowlist is not an append blocker: record unverified facts
    as unverified without running checks or forcing check configuration.
-2. At a meaningful implementation step, decision, blocker, verification result or
-   handoff, make one concise record: what changed, observed result, remaining gap.
-   Record failed/skipped checks honestly. Git helps recover omitted observations;
-   it neither supplies logical parent links nor proves success. Do not wait until
-   the final summary or ask for routine append permission.
+2. At a meaningful planning result, implementation step, decision, blocker,
+   verification result or handoff, make one concise record: what changed, observed
+   result, remaining gap. A completed plan is Progress when it operationalizes an
+   existing Design; a new design direction, parent or criterion is a definition
+   change and uses reviewed refresh instead. Record failed/skipped checks honestly.
+   Git helps recover omitted observations; it neither supplies logical parent links
+   nor proves success. Do not wait until the final summary or ask for routine append
+   permission.
 3. Use an ID once per observation (e.g. `record-session-checkpoint`), an actual
    ISO timestamp, and real evidence IDs from the current scan. Use concrete commit
    hashes, not mutable branch names, for `gitRefs`. Do not invent a verification ID

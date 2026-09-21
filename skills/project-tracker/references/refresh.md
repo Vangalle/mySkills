@@ -45,9 +45,11 @@ target root, never the caller's incidental cwd. Follow this flow:
    - `stopReason: error|aborted` conclusions are risk evidence, never "done";
    - abandoned session branches are not current state;
    - for legacy v1 status, respect at most 3 ACTIVE items and 10 next actions;
-   - for v2, derive Project Goal only from currently observed Philosophy and Market
-     document references; preserve explicit ancestry and all existing progress;
-     missing origins remain null, unknown parents remain null;
+   - for v2, derive the Project Goal only from the goal-origin documents that
+     exist (`README.md`, `PHILOSOPHY.md`, `MARKET.md`); one is enough, `RULES.md`
+     and `AGENTS.md` never derive it, and every origin needs its current observed
+     evidence ID. Preserve explicit ancestry and all existing progress; missing
+     origins remain null, unknown parents remain null;
    - for existing v1 State, `project-tracker state migrate [path]` emits a proposal
      without writing State: review its preservation and unknowns, never infer a
      Project Goal from its milestone or parents from design order;
@@ -62,12 +64,12 @@ target root, never the caller's incidental cwd. Follow this flow:
    ```
 
    Read `unifiedDiff` in the saved preview JSON; it also contains `expectedHash`
-   and the exact `nextMarkdown` to apply. P0 conflicts force
-   the release state to BLOCKED — never override that. Unknown human sections
-   are preserved by default. If old generated status was previously preserved
-   under `Project Notes` and now contradicts the proposal, rerun preview with
-   `--drop-project-notes`, tell the user that the preview removes those notes,
-   and save the new preview JSON for review; never drop notes silently.
+   and the exact `nextMarkdown` to apply. P0 conflicts force the release state to
+   BLOCKED — never override that. The new document holds current state only, so
+   any superseded section (an old `## Legacy Status`, `## Project Notes`, or any
+   extra section) disappears from it. Say so explicitly: the write is only
+   allowed with a backup choice, and the original is archived under `bak/`
+   without overwriting an existing archive.
 
 4. Show the changed goal/design relationships and acceptance meaning in a diagram.
    Keep unchanged context clear. **Wait for explicit confirmation of that semantic
@@ -76,7 +78,7 @@ target root, never the caller's incidental cwd. Follow this flow:
 5. Only after the user confirms, apply:
 
    ```
-   project-tracker state apply --preview .project-tracker/preview.json [path]
+   project-tracker state apply --preview .project-tracker/preview.json --backup-original [path]
    ```
 
    If apply fails with `state_changed_since_preview`, re-run from step 1 and

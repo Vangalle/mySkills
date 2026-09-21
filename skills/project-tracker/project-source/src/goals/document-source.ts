@@ -8,7 +8,12 @@ import { marked } from "marked";
 import { redactSessionText } from "../adapters/pi/redaction.js";
 import type { GoalSource } from "./types.js";
 
-export const PRINCIPLE_PATHS = ["PHILOSOPHY.md", "MARKET.md", "RULES.md", "AGENTS.md", ".specify/memory/constitution.md"];
+/** Documents that may derive the Project Goal: whichever exist, one is enough. */
+export const GOAL_ORIGIN_PATHS: readonly string[] = ["README.md", "PHILOSOPHY.md", "MARKET.md"];
+/** Constraint documents bound engineering and agent behavior — never the goal. */
+export const CONSTRAINT_PATHS: readonly string[] = ["RULES.md", "AGENTS.md", ".specify/memory/constitution.md"];
+/** Everything the collector reads; missing entries are reported, not fatal. */
+export const PRINCIPLE_PATHS = [...GOAL_ORIGIN_PATHS, ...CONSTRAINT_PATHS];
 const MAX_BYTES = 64 * 1024;
 export function contained(root: string, path: string): boolean {
   const rel = relative(root, path);

@@ -11,7 +11,7 @@ import { buildReferences, detectConflicts } from "../analysis/conflict-detector.
 import { buildGoalOverview } from "../goals/source-adapter.js";
 import type { FastifyInstance } from "fastify";
 import { createHash } from "node:crypto";
-import { loadProjectBoard, type TrackerConfig } from "../config.js";
+import type { TrackerConfig } from "../config.js";
 import { discoverProject } from "../discovery/project-discovery.js";
 import { buildProjectEvidence } from "../analysis/evidence-builder.js";
 import { buildBoundedBundle } from "../analysis/bounded-bundle.js";
@@ -20,6 +20,8 @@ import { indexProjectSessions } from "../cache/project-cache.js";
 import { detectAgentsView, buildSessionDeepLink, type AgentsViewAvailability } from "../integrations/agentsview.js";
 import type { ProjectEvidence } from "../contracts.js";
 import type { ProjectScope } from "../contracts.js";
+import { buildWorkplaneSnapshot } from "../workplane/snapshot.js";
+import { createWorkplaneClient, type WorkplaneClient } from "../workplane/client.js";
 
 export interface ProjectRegistry {
   /** Registered project root paths (canonical). */
@@ -35,6 +37,8 @@ export interface ApiContext {
   collectEvidence?: (scope: ProjectScope) => Promise<ProjectEvidence>;
   /** Where AgentsView can be reached, when available. */
   agentsview?: AgentsViewAvailability;
+  /** Optional Workplane plugin client; absent means an uninstalled optional capability. */
+  workplane?: WorkplaneClient;
 }
 
 async function resolveScope(
@@ -63,6 +67,33 @@ async function getEvidence(ctx: ApiContext, scope: ProjectScope): Promise<Projec
     : await buildProjectEvidence(scope, { config: ctx.config });
   ctx.evidenceCache?.set(scope.root, evidence);
   return evidence;
+}
+
+/**
+ * Evidence with the persisted latest verification run applied. A later FAIL must
+ * be able to replace an older PASS without changing source contents, so every
+ * consumer (State and Workplane) shares this preparation.
+ */
+async function getCurrentEvidence(ctx: ApiContext, scope: ProjectScope): Promise<ProjectEvidence> {
+  const cachedEvidence = await getEvidence(ctx, scope);
+  const storePresent = await lstat(join(scope.root, VERIFICATION_STORE_PATH)).then(
+    () => true,
+    (error: NodeJS.ErrnoException) => error.code !== "ENOENT",
+  );
+  const verification = !ctx.collectEvidence ? cachedEvidence.verification : storePresent
+    ? (await loadVerificationStore(scope.root)).records
+    : cachedEvidence.verification.length
+      ? await classifyVerificationRecords(scope.root, cachedEvidence.verification)
+      : [];
+  const currentInputs = { ...cachedEvidence, verification };
+  return {
+    ...currentInputs,
+    references: [
+      ...cachedEvidence.references.filter((reference) => reference.source !== "verification"),
+      ...buildReferences(currentInputs).filter((reference) => reference.source === "verification"),
+    ],
+    conflicts: detectConflicts(currentInputs),
+  };
 }
 
 export interface TimelineEntry {
@@ -181,43 +212,16 @@ export async function registerApi(
     };
   });
 
-  app.get("/api/projects/:id/board", async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const scope = await resolveScope(ctx, id);
-    if (typeof scope === "string") {
-      return reply.code(404).send({ error: "not_found", message: `unknown project: ${id}` });
-    }
-    return loadProjectBoard(scope.root);
-  });
-
   app.get("/api/projects/:id/state", async (request, reply) => {
     const { id } = request.params as { id: string };
     const scope = await resolveScope(ctx, id);
     if (typeof scope === "string") {
       return reply.code(404).send({ error: "not_found", message: `unknown project: ${id}` });
     }
-    const cachedEvidence = await getEvidence(ctx, scope);
     // A later run may replace PASS with FAIL without changing source contents.
     // Prefer the persisted latest run; injected evidence remains usable only
     // when no store exists. Corrupt/unreadable stores must not revive old PASS.
-    const storePresent = await lstat(join(scope.root, VERIFICATION_STORE_PATH)).then(
-      () => true,
-      (error: NodeJS.ErrnoException) => error.code !== "ENOENT",
-    );
-    const verification = !ctx.collectEvidence ? cachedEvidence.verification : storePresent
-      ? (await loadVerificationStore(scope.root)).records
-      : cachedEvidence.verification.length
-        ? await classifyVerificationRecords(scope.root, cachedEvidence.verification)
-        : [];
-    const currentInputs = { ...cachedEvidence, verification };
-    const evidence = {
-      ...currentInputs,
-      references: [
-        ...cachedEvidence.references.filter((reference) => reference.source !== "verification"),
-        ...buildReferences(currentInputs).filter((reference) => reference.source === "verification"),
-      ],
-      conflicts: detectConflicts(currentInputs),
-    };
+    const evidence = await getCurrentEvidence(ctx, scope);
     const freshness = computeFreshness(evidence);
     return {
       project: { id: projectIdFor(scope.root), name: scope.name, root: scope.root },
@@ -238,6 +242,18 @@ export async function registerApi(
       verification: evidence.verification,
       freshness,
     };
+  });
+
+  app.get("/api/projects/:id/workplane", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const scope = await resolveScope(ctx, id);
+    if (typeof scope === "string") {
+      return reply.code(404).send({ error: "not_found", message: `unknown project: ${id}` });
+    }
+    const client = ctx.workplane ?? createWorkplaneClient();
+    const evidence = await getCurrentEvidence(ctx, scope);
+    const snapshot = buildWorkplaneSnapshot(evidence);
+    return client.evaluate({ root: scope.root, snapshot });
   });
 
   app.get("/api/projects/:id/evidence", async (request, reply) => {

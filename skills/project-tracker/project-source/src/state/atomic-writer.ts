@@ -11,12 +11,12 @@
  *      a temp file, fsyncs it and atomically renames it over the target.
  */
 import { createHash } from "node:crypto";
-import { open, rename, readFile, rm, lstat } from "node:fs/promises";
+import { mkdir, open, rename, readFile, rm, lstat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createTwoFilesPatch } from "diff";
 import type { StateProposal, ParsedProjectState } from "../contracts.js";
 import { renderProjectState } from "./markdown-renderer.js";
-import { STATE_BACKUP_NAME } from "./onboarding.js";
+import { STATE_BACKUP_DIR } from "./onboarding.js";
 
 export class StateChangedError extends Error {
   readonly code = "state_changed_since_preview";
@@ -98,8 +98,10 @@ export async function applyStateUpdate(
       if (!stat) throw new Error("No original State to back up");
       const original = await readFile(path);
       if (createHash("sha256").update(original).digest("hex") !== expectedHash) throw new StateChangedError();
-      const backupPath = join(dir, STATE_BACKUP_NAME);
-      const backup = await open(backupPath, "wx", 0o600); // never overwrite another backup
+      const archiveDir = join(dir, STATE_BACKUP_DIR);
+      await mkdir(archiveDir, { recursive: true });
+      const backupPath = join(archiveDir, basename(path));
+      const backup = await open(backupPath, "wx", 0o600); // never overwrite an existing archive
       try { await backup.writeFile(original); await backup.sync(); }
       catch (error) { await backup.close(); await rm(backupPath, { force: true }); throw error; }
       await backup.close();

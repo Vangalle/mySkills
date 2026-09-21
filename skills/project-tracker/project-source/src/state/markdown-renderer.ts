@@ -1,9 +1,9 @@
 /**
  * PROJECT_STATE.md renderer (section 4.2 / 4.3).
  *
- * Renders a validated proposal into a fixed-section Markdown document. The
- * parser can round-trip the output exactly. Unknown human sections that were
- * present in a previous version are re-rendered under Project Notes.
+ * Renders a validated proposal into the canonical section list. The parser can
+ * round-trip the output exactly. Sections outside that list are never carried
+ * forward: the superseded original is archived under bak/ instead.
  */
 import type { ParsedProjectState, ProjectStateProposal, StateProposal } from "../contracts.js";
 import { renderDesignState } from "./design-markdown.js";
@@ -177,18 +177,9 @@ function renderReferences(proposal: ProjectStateProposal): string {
   return lines.join("\n");
 }
 
-function renderUnknownSections(state?: ParsedProjectState | null): string {
-  if (!state || state.unknownSections.length === 0) return "";
-  const lines = ["## Project Notes", ""];
-  for (const section of state.unknownSections) {
-    lines.push(`### ${section.title}`, "", section.body.replace(/\n$/, ""), "");
-  }
-  return lines.join("\n");
-}
-
 /**
- * Render the complete PROJECT_STATE.md content. `existing` supplies the
- * preserved unknown sections (round-trip guarantee for human content).
+ * Render the complete PROJECT_STATE.md content. The document holds current
+ * state only; `existing` is accepted for call compatibility and never copied in.
  */
 export function renderProjectState(
   proposal: StateProposal,
@@ -211,7 +202,6 @@ export function renderProjectState(
     renderVerification(proposal),
     renderNextActions(proposal),
     renderReferences(proposal),
-    renderUnknownSections(existing),
   ];
   return `${parts
     .map((part) => part.replace(/\n{3,}/g, "\n\n").trim())

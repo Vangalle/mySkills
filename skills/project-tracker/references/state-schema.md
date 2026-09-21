@@ -7,20 +7,25 @@ silently migrate live State. `state migrate [path]` emits a proposal only, prese
 legacy status and verification, leaves Project Goal null and ancestry unknown.
 
 A v2 proposal contains `schemaVersion: 2`, `baseline`, `releaseState`, `boundaries`,
-`verification`, `references`, `projectGoal`, `goals` and optional `legacyStatus`.
+`verification`, `references`, `projectGoal` and `goals`.
 The baseline, verification and reference shapes below still apply. Project Goal:
 
 ```json
 {
   "statement": "项目要解决的问题与长期方向",
-  "reasoning": "理念与市场需求如何共同导出目标",
-  "philosophy": { "path": "PHILOSOPHY.md", "evidenceId": "document:<observed-id>" },
-  "market": { "path": "MARKET.md", "evidenceId": "document:<observed-id>" }
+  "reasoning": "这些来源文档如何导出目标",
+  "origins": [
+    { "path": "README.md", "evidenceId": "document:<observed-id>" }
+  ]
 }
 ```
 
-Use actual matching observed document IDs, never the placeholders above. Missing
-origins require `projectGoal: null`, not an inferred milestone or code summary.
+`origins` needs at least one entry, one path each, drawn only from `README.md`,
+`PHILOSOPHY.md` or `MARKET.md`, and every `evidenceId` must be the current observed
+document. `RULES.md`, `AGENTS.md` and the Spec Kit constitution are constraint
+documents and are rejected as origins. Use actual matching observed document IDs,
+never the placeholders above. With no available origin, `projectGoal` must be
+`null`, not an inferred milestone or code summary.
 Each feature goal has `id`, `title`, and designs. Each design has `id`, `title`,
 `path`, optional `taskPaths`, `parents`, `acceptance`, and `progress`:
 
@@ -33,10 +38,13 @@ Each feature goal has `id`, `title`, and designs. Each design has `id`, `title`,
   [automatic records](progress-recording.md). All history IDs start with an ASCII
   letter/digit, contain only letters/digits/`.`/`_`/`-`, and are at most 120 chars.
   Timestamps are ISO with timezone; Git refs are real hexadecimal commit IDs.
-- Preserve existing records, historical verification and its original bindings,
-  human notes and `legacyStatus`; historical evidence is not current acceptance.
+- Preserve existing records, historical verification and its original bindings;
+  historical evidence is not current acceptance.
+- The document holds exactly five sections. Never embed superseded content: any
+  extra section makes the file non-canonical, and the original is archived under
+  `bak/` before a reviewed replacement.
 
-A readable Markdown renderer stores v2 headings/tables. Do not invent a second
+A readable Markdown renderer stores the five v2 sections. Do not invent a second
 JSON state file or a graph database. `proposal.json` is an internal transient
 input. Generated v2 sections must use the renderer's canonical format; put manual
 prose in separate top-level human sections. Extra paragraphs/tables/fields in a

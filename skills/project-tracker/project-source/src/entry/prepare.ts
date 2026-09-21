@@ -20,7 +20,7 @@ export const PreparedProjectContextSchema = z.object({
 export type PreparedProjectContext = z.infer<typeof PreparedProjectContextSchema>;
 export const OnboardingProjectContextSchema = PreparedProjectContextSchema.extend({
   status: z.literal("needs_state_setup"),
-  state: z.object({ path: z.string(), expectedHash: z.string().nullable(), status: z.enum(["legacy", "incompatible"]), backupName: z.literal("PORJECT_STATE.md.bak"), requiresReview: z.literal(true) }),
+  state: z.object({ path: z.string(), expectedHash: z.string().nullable(), status: z.enum(["legacy", "incompatible"]), backupName: z.literal("bak/PROJECT_STATE.md"), requiresReview: z.literal(true) }),
 });
 export const EntryProjectContextSchema = z.union([PreparedProjectContextSchema, OnboardingProjectContextSchema]);
 

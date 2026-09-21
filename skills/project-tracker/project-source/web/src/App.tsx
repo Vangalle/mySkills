@@ -3,9 +3,9 @@ import { api, type ProjectSummary } from "./api";
 import { ProjectOverview } from "./pages/ProjectOverview";
 import { EvidenceTimeline } from "./pages/EvidenceTimeline";
 import { SessionIndex } from "./pages/SessionIndex";
-import { Kanban } from "./pages/Kanban";
+import { Workplane } from "./pages/Workplane";
 
-type Page = "overview" | "kanban" | "timeline" | "sessions";
+type Page = "overview" | "timeline" | "sessions" | "workplane";
 
 export function App() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -33,7 +33,7 @@ export function App() {
   if (error) return <p className="warn">控制台加载失败：{error}</p>;
 
   return (
-    <div className={`app${page === "kanban" ? " app-kanban" : ""}`}>
+    <div className="app">
       <header className="topbar">
         <h1>项目进度追踪</h1>
         {projects.length > 0 && (
@@ -56,14 +56,14 @@ export function App() {
           <button onClick={() => setPage("overview")} disabled={page === "overview"}>
             概览
           </button>
-          <button onClick={() => setPage("kanban")} disabled={page === "kanban"}>
-            看板
-          </button>
           <button onClick={() => setPage("timeline")} disabled={page === "timeline"}>
             时间线
           </button>
           <button onClick={() => setPage("sessions")} disabled={page === "sessions"}>
             会话
+          </button>
+          <button onClick={() => setPage("workplane")} disabled={page === "workplane"}>
+            工作视图
           </button>
           <button onClick={rescan} title="重新扫描项目证据">
             重新扫描
@@ -78,8 +78,8 @@ export function App() {
           <ProjectOverview projectId={selected} key={`${selected}-${refreshKey}`} />
         )}
         {selected !== null && page === "timeline" && <EvidenceTimeline projectId={selected} />}
-        {selected !== null && page === "kanban" && <Kanban projectId={selected} key={selected} />}
         {selected !== null && page === "sessions" && <SessionIndex projectId={selected} />}
+        {selected !== null && page === "workplane" && <Workplane projectId={selected} />}
       </main>
     </div>
   );

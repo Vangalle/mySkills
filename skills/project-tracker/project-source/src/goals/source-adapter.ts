@@ -3,7 +3,7 @@ import { readdir, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { ProjectGoal, DesignStateProposal, VerificationRecord } from "../contracts.js";
 import type { FeatureGoal } from "../state/design-history.js";
-import { contained, PRINCIPLE_PATHS, readProjectDocument } from "./document-source.js";
+import { CONSTRAINT_PATHS, GOAL_ORIGIN_PATHS, PRINCIPLE_PATHS, contained, readProjectDocument } from "./document-source.js";
 import { acceptanceHasCurrentEvidence, type ProposalEvidenceContext } from "../state/state-schema.js";
 import type { GoalOverview, GoalSource } from "./types.js";
 
@@ -81,11 +81,13 @@ export async function buildGoalOverview(
     viewGoals.push({ ...goal, designs });
   }
   const discovery = await discoverSources(root);
-  const principles = (await Promise.all(PRINCIPLE_PATHS.map(read))).filter((entry) => entry.status !== "missing");
+  const available = (await Promise.all(PRINCIPLE_PATHS.map(read))).filter((entry) => entry.status !== "missing");
+  const goalOrigins = available.filter((entry) => GOAL_ORIGIN_PATHS.includes(entry.path));
+  const constraints = available.filter((entry) => CONSTRAINT_PATHS.includes(entry.path));
   const unassociated = await Promise.all(discovery.paths.filter((path) => !associated.has(path)).map(read));
   const warnings = discovery.truncated ? ["原始产物发现已达到扫描上限；可在 goals 中显式引用其余文件。"] : [];
   if ([...sources.values()].length && (await Promise.all(sources.values())).some((entry) => entry.truncated)) warnings.push("部分原文超过 64 KiB，预览和任务统计仅覆盖已读取部分。");
-  const goalOriginCurrent = projectGoal ? [projectGoal.philosophy, projectGoal.market].every(origin =>
-    principles.some(source => source.path === origin.path && source.evidenceId === origin.evidenceId)) : false;
-  return { projectGoal, goalOriginCurrent, goals: viewGoals, principles, unassociated, warnings };
+  const goalOriginCurrent = projectGoal ? projectGoal.origins.every(origin =>
+    goalOrigins.some(source => source.path === origin.path && source.evidenceId === origin.evidenceId)) : false;
+  return { projectGoal, goalOriginCurrent, goals: viewGoals, goalOrigins, constraints, unassociated, warnings };
 }

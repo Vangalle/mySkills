@@ -10,7 +10,7 @@ Both may participate in different functions of the same project.
 | Constitution / User Delta | Spec Kit constitution amendment and consistency review; OpenSpec project context/rules | Update only affected documents. Philosophy + Market derive Project Goal; Rules constrain engineering. |
 | Feature Goal / requirements | Spec Kit specify/clarify; OpenSpec proposal/spec delta and scenarios | Link original requirements, identify unresolved intent; do not substitute generated task lists for goals. |
 | Design evolution | Spec Kit plan/research/design artifacts; OpenSpec design decisions and rationale | Record explicit logical parents under the feature goal. Artifact order or dependency edges are not ancestry. |
-| Tasks / execution | Existing Spec Kit tasks; OpenSpec apply task guidance | Reference authoritative task files and use the existing Pi board; no duplicate task engine. |
+| Tasks / execution | Existing Spec Kit tasks; OpenSpec apply task guidance | Reference authoritative task files and use authorized Pi execution; no duplicate task engine. |
 | Verification / progress | Spec Kit consistency analysis and OpenSpec verification guidance | Run current allowlisted checks; automatically append observed progress. Archive, merge and checkboxes do not establish acceptance. |
 
 ## Resolve the actual local capability

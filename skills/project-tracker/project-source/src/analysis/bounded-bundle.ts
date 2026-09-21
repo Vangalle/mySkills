@@ -10,6 +10,7 @@ import type { ProjectEvidence } from "../contracts.js";
 import type { BundleLimits } from "../config.js";
 import { findExplicitUserCorrections } from "./project-boundaries.js";
 import { verificationEvidenceId } from "../verification/index.js";
+import { CONSTRAINT_PATHS, GOAL_ORIGIN_PATHS } from "../goals/document-source.js";
 
 export interface AnalysisBundle {
   content: string;
@@ -146,17 +147,23 @@ export function buildBoundedBundle(
   }
 
   if (evidence.documents) {
-    lines.push("## Goal origins and Constitution documents", "",
-      "Deduce Project Goal from Philosophy / Insight and PMF / Market, not from a milestone or Git history.");
-    for (const doc of evidence.documents) {
-      lines.push(`### ${doc.path} — ${doc.status}${doc.truncated ? " (incomplete)" : ""}`);
-      if (doc.evidenceId) lines.push(`[${doc.evidenceId}]`);
-      if (doc.status === "available") {
-        lines.push(truncate(doc.preview));
-        if (doc.preview.length > limits.maxTextChars) truncations.push(`${doc.path} excerpt truncated; read the source before deduction`);
+    const listDocuments = (docs: typeof evidence.documents) => {
+      for (const doc of docs) {
+        lines.push(`### ${doc.path} — ${doc.status}${doc.truncated ? " (incomplete)" : ""}`);
+        if (doc.evidenceId) lines.push(`[${doc.evidenceId}]`);
+        if (doc.status === "available") {
+          lines.push(truncate(doc.preview));
+          if (doc.preview.length > limits.maxTextChars) truncations.push(`${doc.path} excerpt truncated; read the source before deduction`);
+        }
+        lines.push("");
       }
-      lines.push("");
-    }
+    };
+    lines.push("## Goal origins", "",
+      "Deduce the Project Goal from these documents only. A milestone, a commit subject or Git history cannot supply it.");
+    listDocuments(evidence.documents.filter((doc) => GOAL_ORIGIN_PATHS.includes(doc.path)));
+    lines.push("## Constitution and constraint documents", "",
+      "These bound engineering and agent behavior. They never derive the Project Goal.");
+    listDocuments(evidence.documents.filter((doc) => CONSTRAINT_PATHS.includes(doc.path)));
   }
 
   lines.push("## Existing PROJECT_STATE.md", "");

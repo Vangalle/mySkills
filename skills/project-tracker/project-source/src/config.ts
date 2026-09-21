@@ -9,7 +9,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { normalizeKanbanUrl, type BoardConfig } from "./integrations/kanban.js";
 import type { CollectionReporter } from "./analysis/collection.js";
 import type { CollectionIssue } from "./contracts.js";
 
@@ -95,15 +94,6 @@ export function resolvePiSessionDirs(
 export interface ProjectConfigFile {
   verificationAllowlist?: string[];
   extraProjectPaths?: string[];
-  /** Independent local task-board project URL; HTTP loopback only. */
-  kanbanUrl?: string;
-}
-
-export function loadProjectBoard(root: string): BoardConfig {
-  const value = loadProjectConfigFile(root)?.kanbanUrl;
-  if (value === undefined) return { status: "unconfigured", url: null };
-  const url = normalizeKanbanUrl(value);
-  return url ? { status: "configured", url } : { status: "invalid_config", url: null };
 }
 
 export function loadProjectConfigFile(

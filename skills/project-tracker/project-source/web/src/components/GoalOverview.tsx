@@ -31,11 +31,13 @@ export function GoalOverview({ overview, project }: { overview: GoalOverviewData
           <h3>{overview.projectGoal.statement}</h3>
           <details><summary>目标如何得出</summary>
             <p>{overview.projectGoal.reasoning}</p>
-            <p>Philosophy / Insight：<code>{overview.projectGoal.philosophy.path}</code></p>
-            <p>PMF / Market：<code>{overview.projectGoal.market.path}</code></p>
+            <p>目标来源：</p>
+            <ul className="goal-origins">{overview.projectGoal.origins.map((origin) => (
+              <li key={origin.path}><code>{origin.path}</code></li>
+            ))}</ul>
           </details>
           {overview.goalOriginCurrent === false && <p className="warn">目标来源已变化或无法读取；当前推导需要复核。</p>}
-        </> : <p>尚未建立可追溯的项目目标；需要 Philosophy / Insight 与 PMF / Market 来源。</p>}
+        </> : <p>尚未建立可追溯的项目目标；需要至少一份目标来源文档。</p>}
       </div>
       {project && overview.goals.length > 0 && <div className="flow-connector" aria-hidden="true" />}
       <p className="goal-progress-note meta">设计完成程度按有当前通过证据的验收项计算。原始任务勾选单独展示。</p>
@@ -80,7 +82,8 @@ export function GoalOverview({ overview, project }: { overview: GoalOverviewData
         </article>
       ))}
       </div>
-      {overview.principles.length > 0 && <details className="goal-principles"><summary>项目原则与来源 · {overview.principles.length}</summary>{overview.principles.map((source) => <SourcePreview key={source.path} source={source} />)}</details>}
+      {overview.goalOrigins.length > 0 && <details className="goal-origins-source"><summary>目标来源文档 · {overview.goalOrigins.length}</summary>{overview.goalOrigins.map((source) => <SourcePreview key={source.path} source={source} />)}</details>}
+      {overview.constraints.length > 0 && <details className="goal-constraints"><summary>约束文档 · {overview.constraints.length}（不能推导项目目标）</summary>{overview.constraints.map((source) => <SourcePreview key={source.path} source={source} />)}</details>}
       {overview.unassociated.length > 0 && <details className="goal-unassociated"><summary><strong>未关联产物</strong> · {overview.unassociated.length}</summary><p className="meta">已发现原始规格、设计或任务文件；未推测其业务目标归属。</p>{overview.unassociated.map((source) => <SourcePreview key={source.path} source={source} />)}</details>}
       {overview.warnings.map((warning) => <p className="warn" key={warning}>{warning}</p>)}
     </section>

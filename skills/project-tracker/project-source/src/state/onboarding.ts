@@ -5,7 +5,9 @@ import { createHash } from "node:crypto";
 import { parseProjectState } from "./markdown-parser.js";
 import { StateProposalSchema } from "../contracts.js";
 
-export const STATE_BACKUP_NAME = "PORJECT_STATE.md.bak";
+/** Superseded State is archived as a file, never embedded in the new document. */
+export const STATE_BACKUP_DIR = "bak";
+export const STATE_BACKUP_NAME = `${STATE_BACKUP_DIR}/PROJECT_STATE.md`;
 /** Bounded, regular-file, no-symlink read. Missing is distinct from unreadable. */
 export async function readStateSnapshot(root: string, fileName = "PROJECT_STATE.md") {
   if (!fileName || /[/\\]/.test(fileName) || [".", ".."].includes(fileName)) throw new Error("State filename must be project-local");
@@ -48,7 +50,6 @@ export async function replacementNeedsBackup(root: string, nextMarkdown: string,
   }
   const withoutFreshness = ({ freshness: _f, ...v }: typeof old.data.verification[number]) => v;
   if (old.data.verification.some(v => !target.verification.some(n => equal(withoutFreshness(n), withoutFreshness(v))))) return true;
-  if (old.data.legacyStatus && !equal(old.data.legacyStatus, target.legacyStatus)) return true;
   return false;
 }
 

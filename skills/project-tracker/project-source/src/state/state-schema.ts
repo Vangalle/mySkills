@@ -3,6 +3,7 @@
  * The Zod schemas themselves live in src/contracts.ts (single contract source).
  */
 import { verificationEvidenceId, isCurrentPassingVerification } from "../verification/index.js";
+import { CONSTRAINT_PATHS, GOAL_ORIGIN_PATHS } from "../goals/document-source.js";
 import {
   createProjectStateProposalSchema,
   ProjectStateProposalSchema,
@@ -55,12 +56,18 @@ export function validateProposalAgainstEvidence(
     const refsById = new Map(evidence.references.map((reference) => [reference.id, reference]));
 
     if (parsed.schemaVersion === 2 && parsed.projectGoal) {
-      for (const role of ["philosophy", "market"] as const) {
-        const origin = parsed.projectGoal[role];
-        const expectedPath = role === "philosophy" ? "PHILOSOPHY.md" : "MARKET.md";
+      for (const [index, origin] of parsed.projectGoal.origins.entries()) {
+        if (CONSTRAINT_PATHS.includes(origin.path)) {
+          errors.push(`projectGoal.origins.${index}: ${origin.path} 是约束文档，不能用来推导项目目标；目标只能来自 ${GOAL_ORIGIN_PATHS.join(" / ")}。`);
+          continue;
+        }
+        if (!GOAL_ORIGIN_PATHS.includes(origin.path)) {
+          errors.push(`projectGoal.origins.${index}: ${origin.path} 不是目标来源文档`);
+          continue;
+        }
         const ref = refsById.get(origin.evidenceId);
-        if (origin.path !== expectedPath || ref?.source !== "filesystem" || ref.confidence !== "observed" || ref.locator !== origin.path) {
-          errors.push(`projectGoal.${role}: requires matching observed ${expectedPath} source evidence`);
+        if (ref?.source !== "filesystem" || ref.confidence !== "observed" || ref.locator !== origin.path) {
+          errors.push(`projectGoal.origins.${index}: 找不到对应 ${origin.path} 的当前观察证据，请重新扫描后再提交`);
         }
       }
     }

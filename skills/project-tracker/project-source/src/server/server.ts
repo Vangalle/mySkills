@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { loadTrackerConfig, type TrackerConfig } from "../config.js";
 import { discoverProject } from "../discovery/project-discovery.js";
 import { registerApi, type ApiContext } from "./api.js";
+import { createWorkplaneClient } from "../workplane/client.js";
 import { enforceLoopbackHost, enforceOrigin, checkBindPolicy } from "./security.js";
 
 export interface DashboardHandle {
@@ -133,6 +134,9 @@ export async function startDashboard(
     config,
     registry: { projects: roots },
     evidenceCache: new Map(),
+    // One optional plugin client for the server lifetime; absence or failure is
+    // handled per request and never blocks startup.
+    workplane: createWorkplaneClient(),
   };
 
   const app = await buildApp(ctx);

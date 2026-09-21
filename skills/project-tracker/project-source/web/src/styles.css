@@ -91,19 +91,6 @@ nav button:disabled {
 
 main { padding-top: 22px; }
 
-.app.app-kanban { width: calc(100% - 32px); }
-.kanban-page .meta { margin: 6px 0; }
-.kanban-page .page-heading a { color: var(--ink); text-underline-offset: 3px; }
-.kanban-frame {
-  display: block;
-  width: 100%;
-  height: max(620px, calc(100dvh - 260px));
-  margin-top: 18px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--paper);
-}
-
 .card {
   margin: 14px 0;
   padding: 20px 22px;
@@ -514,3 +501,11 @@ body:has(.overview) {
   .flow-root { padding: 16px; }
   .goal-progress-note { text-align: left; }
 }
+
+/* Optional Workplane view: plugin HTML is isolated in a script-only iframe. */
+.workplane-page { width: 100%; }
+.workplane-frame { width: 100%; height: calc(100vh - 140px); min-height: 520px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.workplane-status { max-width: 620px; }
+.workplane-status h2 { margin-bottom: 8px; }
+.workplane-status p { margin: 6px 0; }
+.workplane-status .muted { color: var(--muted); }

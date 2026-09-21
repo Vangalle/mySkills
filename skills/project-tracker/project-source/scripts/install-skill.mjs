@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import { decideWorkplaneInstall, resolveWorkplaneOffer } from "./workplane-install-choice.mjs";
 
 const installer = fileURLToPath(import.meta.url);
 const root = resolve(dirname(installer), "..");
@@ -24,12 +25,19 @@ async function json(path) {
   try { return JSON.parse(await readFile(path, "utf8")); } catch { return null; }
 }
 function parseArgs(args) {
-  const options = { skill: "project-tracker", skillsDir: join(homedir(), ".pi", "agent", "skills"), binDir: join(homedir(), ".local", "bin"), runtimeDir: resolve(process.env.PROJECT_TRACKER_CODEGRAPH_DIR || join(homedir(), ".local", "share", "project-tracker", "codegraph")), uninstall: false, confirmCodegraph: false };
+  const options = { skill: "project-tracker", skillsDir: join(homedir(), ".pi", "agent", "skills"), binDir: join(homedir(), ".local", "bin"), runtimeDir: resolve(process.env.PROJECT_TRACKER_CODEGRAPH_DIR || join(homedir(), ".local", "share", "project-tracker", "codegraph")), uninstall: false, confirmCodegraph: false, confirmWorkplane: false, withoutWorkplane: false, workplaneSource: null };
   const values = { "--skill": "skill", "--skills-dir": "skillsDir", "--bin-dir": "binDir", "--runtime-dir": "runtimeDir", "--extensions-dir": "extensionsDir" };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === "--uninstall") options.uninstall = true;
     else if (arg === "--confirm-codegraph") options.confirmCodegraph = true;
+    else if (arg === "--confirm-workplane") options.confirmWorkplane = true;
+    else if (arg === "--without-workplane") options.withoutWorkplane = true;
+    else if (arg === "--workplane-source") {
+      const value = args[++i];
+      if (!value || value.startsWith("--")) throw new Error("missing value for --workplane-source");
+      options.workplaneSource = resolve(value);
+    }
     else if (values[arg]) {
       const value = args[++i];
       if (!value || value.startsWith("--")) throw new Error(`missing value for ${arg}`);
@@ -76,8 +84,7 @@ async function snapshot(path) {
   const info = await stat(path);
   return info ? `${info.dev}:${info.ino}:${info.mtimeMs}:${info.size}` : null;
 }
-async function runNpm(cwd) {
-  await new Promise((resolveRun, reject) => {
+async function runNpm(cwd) {  await new Promise((resolveRun, reject) => {
     const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["ci", "--omit=dev", "--no-audit", "--no-fund"], { cwd, stdio: "inherit" });
     child.once("error", reject);
     child.once("exit", (code, signal) => code === 0 ? resolveRun() : reject(new Error(`CodeGraph npm ci failed (${signal || code}); existing installation preserved`)));
@@ -90,8 +97,7 @@ async function runNpm(cwd) {
   if (typeof sdk.getDatabasePath !== "function" || typeof sdk.CodeGraph?.open !== "function" || typeof sdk.CodeGraph?.init !== "function") throw new Error("CodeGraph runtime validation failed: incompatible SDK");
 }
 async function main() {
-  const options = parseArgs(process.argv.slice(2));
-  const source = join(root, "skill", options.skill);
+  const options = parseArgs(process.argv.slice(2));  const source = join(root, "skill", options.skill);
   const target = join(options.skillsDir, options.skill);
   const cli = join(options.binDir, "project-tracker");
   const cliMarker = join(options.binDir, CLI_MARKER);
@@ -182,5 +188,55 @@ async function main() {
     if (!options.uninstall) console.log("请在 Pi 中 /reload 或启动新会话以加载扫描入口；仅加载 skill 文本不提供执行门槛。");
   }
   if (!options.uninstall) console.log(`Pi exposes /skill:${options.skill}`);
+
+  if (!options.uninstall && options.workplaneSource) {
+    const offer = await resolveWorkplaneOffer(options.workplaneSource);
+    const decision = await decideWorkplaneInstall({
+      offer,
+      confirm: options.confirmWorkplane,
+      skip: options.withoutWorkplane,
+      interactive: process.stdin.isTTY === true,
+      ask: promptWorkplane,
+    });
+    if (decision.install && offer) {
+      try {
+        await runWorkplaneInstaller(offer.installer, options.skillsDir, options.binDir);
+        console.log(`Workplane installed from ${offer.source} (version ${offer.version}).`);
+      } catch (error) {
+        console.log("Tracker installed. Workplane installation failed; Project Tracker remains fully usable without it.");
+        console.error(`Workplane installation failed: ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 1;
+      }
+    } else if (decision.reason === "declined") {
+      console.log("Skipping Workplane; installing Project Tracker only.");
+    } else if (decision.reason === "non_interactive") {
+      console.log("Non-interactive install: Project Tracker only. Pass --confirm-workplane to add Workplane.");
+    }
+  }
+}
+
+function runWorkplaneInstaller(installer, skillsDir, binDir) {
+  return new Promise((resolveRun, reject) => {
+    const child = spawn(process.execPath, [installer, "--skills-dir", skillsDir, "--bin-dir", binDir], { stdio: "inherit" });
+    child.once("error", reject);
+    child.once("exit", (code, signal) => (code === 0 ? resolveRun() : reject(new Error(`Workplane installer exited with ${signal ?? code}`))));
+  });
+}
+
+async function promptWorkplane(offer) {
+  const label = offer ? `${offer.source} (version ${offer.version})` : "the Workplane source";
+  process.stdout.write(`Install Workplane from ${label}? [y/N] `);
+  return new Promise((resolveRead) => {
+    let data = "";
+    const onData = (chunk) => {
+      data += String(chunk);
+      if (data.includes("\n")) {
+        process.stdin.off("data", onData);
+        resolveRead(data.trim());
+      }
+    };
+    process.stdin.on("data", onData);
+    process.stdin.resume();
+  });
 }
 main().catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; });

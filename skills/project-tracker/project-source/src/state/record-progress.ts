@@ -36,8 +36,8 @@ export async function recordProgress(root: string, raw: ProgressAppend, evidence
   const markdown = await readFile(path, "utf8");
   const parsed = parseProjectState(markdown);
   if (parsed.proposal?.schemaVersion !== 2) throw new Error(parsed.schemaVersion === 2
-    ? "State v2 is invalid or noncanonical; refusing a potentially lossy rewrite"
-    : "automatic records require established v2 State; review a migration first");
+    ? `${parsed.invalidReason ?? "项目进度记录不是当前的标准格式。"} 自动记录不能改写文档结构，请先走一次预览确认后的整体替换。`
+    : "自动追加需要已建立的项目进度记录（v2）；请先完成一次预览确认后的迁移。");
   const input = ProgressAppendSchema.parse(raw);
   const next = appendProgress(parsed.proposal, input);
   if (!next.appended) return { appended: false, path, recordId: input.record.id };

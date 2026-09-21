@@ -11,7 +11,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { Command } from "commander";
 import { z } from "zod";
 import { execa } from "execa";
@@ -47,6 +47,15 @@ import {
   writeVerificationStore,
 } from "./verification/index.js";
 import { registerMapCommands } from "./project-map/commands.js";
+import { createWorkplaneClient } from "./workplane/client.js";
+import { buildWorkplaneSnapshot, trackerStructureHash } from "./workplane/snapshot.js";
+import {
+  applyWorkplaneUpdate,
+  previewWorkplaneUpdate,
+  WorkplaneChangedError,
+  WorkplanePreviewSchema,
+  type WorkplaneValidationResult,
+} from "./workplane/atomic-writer.js";
 
 export const EXIT_OK = 0;
 export const EXIT_ERROR = 1;
@@ -222,6 +231,26 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
     .description("evidence-based local project status")
     .version("0.1.0");
 
+  async function workplaneValidation(
+    client: ReturnType<typeof createWorkplaneClient>,
+    root: string,
+    definition: unknown,
+    snapshot: ReturnType<typeof buildWorkplaneSnapshot>,
+  ): Promise<WorkplaneValidationResult> {
+    const result = await client.evaluate({ root, definition, snapshot });
+    if (result.status === "ready") {
+      return {
+        status: "ready",
+        receipt: {
+          pass: result.document.receipt.pass,
+          errors: result.document.receipt.errors,
+          warnings: result.document.receipt.warnings,
+        },
+      };
+    }
+    return { status: "invalid", message: result.message, errors: "errors" in result ? result.errors ?? [] : [] };
+  }
+
   registerMapCommands(program, {
     root: async (path) => (await scopedProject(path, loadTrackerConfig())).root,
     stdout: io.stdout,
@@ -391,9 +420,8 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
     .description("render the proposal into PROJECT_STATE.next.md + unified diff")
     .requiredOption("--proposal <file>", "proposal JSON file")
     .option("--evidence <file>", "evidence JSON file for validation")
-    .option("--drop-project-notes", "exclude preserved Project Notes from this preview")
     .argument("[path]", "project path", process.cwd())
-    .action(async (path: string, options: { proposal: string; evidence?: string; dropProjectNotes?: boolean }) => {
+    .action(async (path: string, options: { proposal: string; evidence?: string }) => {
       const config = loadTrackerConfig();
       const scope = await scopedProject(path, config);
       const proposal = readJsonWithSchema(options.proposal, ProjectStateProposalSchema);
@@ -415,11 +443,7 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
       }
       const statePath = join(scope.root, config.stateFileName);
       const parsedExisting = existsSync(statePath) ? parseProjectState(readFileSync(statePath, "utf8")) : null;
-      const existing =
-        options.dropProjectNotes && parsedExisting
-          ? { ...parsedExisting, unknownSections: [] }
-          : parsedExisting;
-      const diff = await previewStateUpdate(statePath, working, { existing });
+      const diff = await previewStateUpdate(statePath, working, { existing: parsedExisting });
       io.stdout(
         JSON.stringify(
           {
@@ -441,11 +465,10 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
     .option("--preview <file>", "saved JSON from state preview; applies the exact reviewed markdown")
     .option("--proposal <file>", "legacy proposal JSON (prefer --preview to preserve evidence-driven changes)")
     .option("--hash <hash>", "expectedHash for legacy --proposal ('null' for create)")
-    .option("--backup-original", "explicitly retain original as PORJECT_STATE.md.bak before applying")
+    .option("--backup-original", "archive the original under bak/ before applying")
     .option("--discard-original", "explicitly decline a backup for the reviewed replacement")
-    .option("--drop-project-notes", "exclude preserved Project Notes exactly as previewed")
     .argument("[path]", "project path", process.cwd())
-    .action(async (path: string, options: { preview?: string; proposal?: string; hash?: string; dropProjectNotes?: boolean; backupOriginal?: boolean; discardOriginal?: boolean }) => {
+    .action(async (path: string, options: { preview?: string; proposal?: string; hash?: string; backupOriginal?: boolean; discardOriginal?: boolean }) => {
       const config = loadTrackerConfig();
       const scope = await scopedProject(path, config);
       const statePath = join(scope.root, config.stateFileName);
@@ -454,7 +477,7 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
       if (options.hash !== undefined && (options.hash === "null" ? null : options.hash) !== inspection.expectedHash) throw new CliError("PROJECT_STATE.md changed since the preview was generated", EXIT_CONFLICT);
       if (!options.preview && (options.backupOriginal || options.discardOriginal)) throw new CliError("replacement consent requires an exact --preview", EXIT_INVALID);
       if (options.preview) {
-        if (options.proposal || options.hash !== undefined || options.dropProjectNotes) {
+        if (options.proposal || options.hash !== undefined) {
           throw new CliError("--preview already contains the reviewed content and expectedHash; do not combine it with legacy apply options", EXIT_INVALID);
         }
         const preview = readJsonWithSchema(options.preview, z.object({
@@ -481,11 +504,7 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
       const proposal = readJsonWithSchema(options.proposal, ProjectStateProposalSchema);
       if (inspection.status === "legacy" && proposal.schemaVersion === 2) throw new CliError("Migration requires an exact preview and backup choice", EXIT_INVALID);
       const parsedExisting = existsSync(statePath) ? parseProjectState(readFileSync(statePath, "utf8")) : null;
-      const existing =
-        options.dropProjectNotes && parsedExisting
-          ? { ...parsedExisting, unknownSections: [] }
-          : parsedExisting;
-      const markdown = renderProjectState(proposal, existing);
+      const markdown = renderProjectState(proposal, parsedExisting);
       if (await replacementNeedsBackup(scope.root, markdown, config.stateFileName)) throw new CliError("Structural replacement requires an exact preview and backup choice", EXIT_INVALID);
       try {
         await applyStateUpdate(statePath, options.hash === "null" ? null : options.hash, markdown);
@@ -563,6 +582,63 @@ export function buildCli(io: CliIo = defaultIo): { program: Command; run: (argv:
       state.exitCode = EXIT_OK;
       // Keep the dashboard process alive until killed.
       await new Promise<never>(() => {});
+    });
+
+  const workplaneCmd = program.command("workplane").description("review and atomically apply WORKPLANE.json changes");
+  workplaneCmd
+    .command("preview")
+    .description("validate a candidate definition and print an applicable preview")
+    .requiredOption("--definition <file>", "candidate WORKPLANE.json")
+    .argument("[path]", "project path", process.cwd())
+    .action(async (path: string, options: { definition: string }) => {
+      try {
+        const config = loadTrackerConfig();
+        const scope = await scopedProject(path, config);
+        const definition = parseJsonFile(options.definition);
+        const evidence = await buildProjectEvidence(scope, { config });
+        const snapshot = buildWorkplaneSnapshot(evidence);
+        const client = createWorkplaneClient();
+        const preview = await previewWorkplaneUpdate({
+          targetPath: join(resolve(path), "WORKPLANE.json"),
+          definition,
+          trackerStructureHash: trackerStructureHash(snapshot),
+          validate: () => workplaneValidation(client, scope.root, definition, snapshot),
+        });
+        io.stdout(JSON.stringify(preview));
+        state.exitCode = EXIT_OK;
+      } catch (error) {
+        if (error instanceof CliError) throw error;
+        if (error instanceof WorkplaneChangedError) throw new CliError(error.message, EXIT_CONFLICT, { code: error.code });
+        throw new CliError((error as Error).message, EXIT_INVALID);
+      }
+    });
+  workplaneCmd
+    .command("apply")
+    .description("apply a previously reviewed preview atomically")
+    .requiredOption("--preview <file>", "saved preview JSON")
+    .argument("[path]", "project path", process.cwd())
+    .action(async (path: string, options: { preview: string }) => {
+      try {
+        const config = loadTrackerConfig();
+        const scope = await scopedProject(path, config);
+        const preview = readJsonWithSchema(options.preview, WorkplanePreviewSchema);
+        const definition = JSON.parse(preview.nextJson) as unknown;
+        const evidence = await buildProjectEvidence(scope, { config });
+        const snapshot = buildWorkplaneSnapshot(evidence);
+        const client = createWorkplaneClient();
+        await applyWorkplaneUpdate({
+          targetPath: join(resolve(path), "WORKPLANE.json"),
+          preview,
+          trackerStructureHash: trackerStructureHash(snapshot),
+          validate: () => workplaneValidation(client, scope.root, definition, snapshot),
+        });
+        io.stdout(JSON.stringify({ path: join(resolve(path), "WORKPLANE.json"), applied: true }));
+        state.exitCode = EXIT_OK;
+      } catch (error) {
+        if (error instanceof CliError) throw error;
+        if (error instanceof WorkplaneChangedError) throw new CliError(error.message, EXIT_CONFLICT, { code: error.code });
+        throw new CliError((error as Error).message, EXIT_INVALID);
+      }
     });
 
   async function run(argv: string[]): Promise<number> {

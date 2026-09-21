@@ -25,7 +25,10 @@ export interface GoalOverview {
       evidence: Array<{ id: string; locator: string; summary: string; observedAt: string }>;
     }>;
   }> }>;
-  principles: GoalSource[];
+  /** Documents that may derive the Project Goal (README / PHILOSOPHY / MARKET). */
+  goalOrigins: GoalSource[];
+  /** Constraint documents (RULES / AGENTS / constitution): they never derive the goal. */
+  constraints: GoalSource[];
   unassociated: GoalSource[];
   warnings: string[];
 }

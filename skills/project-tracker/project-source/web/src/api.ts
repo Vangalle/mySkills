@@ -1,7 +1,5 @@
 /** Typed client for the read-only local API. */
 import type { GoalOverview } from "../../src/goals/types";
-import type { BoardConfig } from "../../src/integrations/kanban";
-export type { BoardConfig } from "../../src/integrations/kanban";
 export type { GoalOverview, GoalSource } from "../../src/goals/types";
 
 export interface ProjectSummary {
@@ -75,6 +73,14 @@ export interface SessionsResponse {
   };
 }
 
+export type WorkplaneApiResponse =
+  | { status: "ready"; document: unknown; html: string; mermaid: string }
+  | {
+      status: "not_configured" | "unavailable" | "incompatible" | "invalid" | "failed";
+      message: string;
+      errors?: string[];
+    };
+
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { headers: { accept: "application/json" } });
   if (!response.ok) {
@@ -86,11 +92,12 @@ async function fetchJson<T>(url: string): Promise<T> {
 export const api = {
   listProjects: () => fetchJson<{ projects: ProjectSummary[] }>("/api/projects"),
   getState: (id: string) => fetchJson<StateResponse>(`/api/projects/${encodeURIComponent(id)}/state`),
-  getBoard: (id: string) => fetchJson<BoardConfig>(`/api/projects/${encodeURIComponent(id)}/board`),
   getTimeline: (id: string) =>
     fetchJson<{ timeline: TimelineEntry[] }>(`/api/projects/${encodeURIComponent(id)}/timeline`),
   getSessions: (id: string) =>
     fetchJson<SessionsResponse>(`/api/projects/${encodeURIComponent(id)}/sessions`),
+  getWorkplane: (id: string) =>
+    fetchJson<WorkplaneApiResponse>(`/api/projects/${encodeURIComponent(id)}/workplane`),
   rescan: (id: string) =>
     fetch(`/api/projects/${encodeURIComponent(id)}/rescan`, { method: "POST" }),
 };

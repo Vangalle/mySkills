@@ -7,8 +7,8 @@
 `project-tracker state inspect [path]` 只读返回 missing / compatible / legacy / incompatible，以及当前 hash。`prepare --json --onboarding [path]` 可返回 `needs_state_setup`，仅授权进入接入对话，不是正常扫描就绪；不可读来源、读取权限或其他收集失败仍停止。处理完成后重新 prepare，再继续暂存的原要求。
 
 1. compatible 继续使用；missing 根据真实来源建立提案。legacy / incompatible 读取原文，判断可否小范围调整或无损迁移。保持能保留的历史，不从旧里程碑编造 Project Goal；缺失来源/祖先保持未知。
-2. 大量结构调整先用图说明，并询问：**是否将原文件保留为 `PORJECT_STATE.md.bak`？** 名称按用户约定，不改成 PROJECT_STATE.md.bak。保留旧文件的选择与目标/设计变更的审图确认是不同事项；都明确后才写。
-3. 有效 v1 可用 `state migrate [path]` 输出提案；不能解析的旧文件需要根据原文整理新提案，而不是反复调用无法成功的 migrate。提案仍需 schema/来源校验及内部 `state preview`。预览中的旧 `Project Notes` 保留容器、子标题及正文，并标注“历史原文，不代表当前状态或当前验证”；独立人工章节保持原层级。后续 v2 保存保留整个容器，不重复嵌套。工具更新不会修正已经生成的旧 preview，需重新生成后核对。
+2. 大量结构调整先用图说明，并询问：**是否把原文件归档到 `bak/PROJECT_STATE.md`？** 保留旧文件的选择与目标/设计变更的审图确认是不同事项；都明确后才写。
+3. 有效 v1 可用 `state migrate [path]` 输出提案；不能解析的旧文件需要根据原文整理新提案，而不是反复调用无法成功的 migrate。提案仍需 schema/来源校验及内部 `state preview`。新文档只含当前状态，不复制旧结论或任何额外章节；被取代的内容由归档保留。工具更新不会修正已经生成的旧 preview，需重新生成后核对。
 4. 保存内部 preview JSON 后，按用户选择执行其一：
 
    ```sh
@@ -17,7 +17,7 @@
    project-tracker state apply --preview "/target/.project-tracker/preview.json" --discard-original "/target"
    ```
 
-   自动记录不走此全量替换接口。备份按原字节保存，在原文件替换之前写入并同步；已有备份不覆盖。失败、hash 冲突或锁冲突时保持原文件，不删除备份重试、不绕过 writer。若备份已存在，告知冲突，让用户处理已有备份后再继续；不能擅自选择“不保留”。小范围修正仍须保留人类内容，定义变化仍审图。
+   自动记录不走此全量替换接口。归档按原字节写入 `bak/`，在原文件替换之前完成并同步；已有归档不覆盖。失败、hash 冲突或锁冲突时保持原文件，不删除备份重试、不绕过 writer。若备份已存在，告知冲突，让用户处理已有备份后再继续；不能擅自选择“不保留”。小范围修正仍须保留人类内容，定义变化仍审图。
 
 ## 检查配置引导
 

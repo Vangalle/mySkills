@@ -98,7 +98,8 @@ git -C "$WORK" remote add origin "$REMOTE"
 git -C "$WORK" push -u origin main
 git --git-dir="$REMOTE" symbolic-ref HEAD refs/heads/main
 
-# A selected update creates one scoped commit and pushes it.
+# A selected update creates one scoped commit, pushes it, and tags it as v0.0.1
+# (patch bump of the fixture's package.json version 0.0.0).
 printf 'updated-project-tracker\n' > "$SOURCES/project-tracker/value.txt"
 sources_before="$(snapshot "$SOURCES")"
 before="$(git -C "$WORK" rev-parse HEAD)"
@@ -110,13 +111,17 @@ remote_after="$(git --git-dir="$REMOTE" rev-parse refs/heads/main)"
 [[ "$(git -C "$WORK" log -1 --format=%s)" == 'chore(skills): update project-tracker' ]]
 [[ "$(git -C "$WORK" diff-tree --no-commit-id --name-only -r HEAD)" == 'skills/project-tracker/value.txt' ]]
 [[ "$sources_before" == "$(snapshot "$SOURCES")" ]]
+[[ "$(git -C "$WORK" cat-file -t v0.0.1)" == 'tag' ]]
+[[ "$(git -C "$WORK" rev-parse 'v0.0.1^{commit}')" == "$after" ]]
+[[ "$(git --git-dir="$REMOTE" rev-parse 'refs/tags/v0.0.1^{commit}')" == "$after" ]]
 
-# No changes means no commit and no remote ref movement.
+# No changes means no commit, no remote ref movement, and no new tag.
 before="$after"
 output="$(cd "$WORK" && bash scripts/update-skills.sh project-tracker)"
 [[ "$output" == *'No skill changes to publish.'* ]]
 [[ "$before" == "$(git -C "$WORK" rev-parse HEAD)" ]]
 [[ "$before" == "$(git --git-dir="$REMOTE" rev-parse refs/heads/main)" ]]
+[[ "$(git --git-dir="$REMOTE" tag --list | wc -l | tr -d ' ')" == '1' ]]
 
 # A runtime-only skill update commits and pushes only its SKILL.md.
 cat > "$SOURCES/writing-technical-reports/SKILL.md" <<'EOF'
@@ -133,6 +138,8 @@ after="$(git -C "$WORK" rev-parse HEAD)"
 [[ "$after" == "$(git --git-dir="$REMOTE" rev-parse refs/heads/main)" ]]
 [[ "$(git -C "$WORK" log -1 --format=%s)" == 'chore(skills): update writing-technical-reports' ]]
 [[ "$(git -C "$WORK" diff-tree --no-commit-id --name-only -r HEAD)" == 'skills/writing-technical-reports/SKILL.md' ]]
+[[ "$(git -C "$WORK" rev-parse 'v0.0.2^{commit}')" == "$after" ]]
+[[ "$(git --git-dir="$REMOTE" rev-parse 'refs/tags/v0.0.2^{commit}')" == "$after" ]]
 
 # A dirty tree aborts before importing a changed source.
 printf 'unrelated\n' > "$WORK/unrelated.txt"
@@ -173,12 +180,14 @@ git -C "$WORK" pull --ff-only
 printf 'validation-failure-candidate\n' > "$SOURCES/project-tracker/value.txt"
 before="$(git -C "$WORK" rev-parse HEAD)"
 remote_before="$(git --git-dir="$REMOTE" rev-parse refs/heads/main)"
+tags_before="$(git --git-dir="$REMOTE" tag --list)"
 if (cd "$WORK" && FAIL_VALIDATION=1 bash scripts/update-skills.sh project-tracker); then
   echo 'validation failure unexpectedly published' >&2
   exit 1
 fi
 [[ "$before" == "$(git -C "$WORK" rev-parse HEAD)" ]]
 [[ "$remote_before" == "$(git --git-dir="$REMOTE" rev-parse refs/heads/main)" ]]
+[[ "$tags_before" == "$(git --git-dir="$REMOTE" tag --list)" ]]
 [[ "$(cat "$WORK/skills/project-tracker/value.txt")" == 'validation-failure-candidate' ]]
 [[ -n "$(git -C "$WORK" status --porcelain -- skills/project-tracker)" ]]
 git -C "$WORK" reset --hard HEAD
@@ -190,5 +199,68 @@ if (cd "$WORK" && bash scripts/update-skills.sh unknown-skill); then
   exit 1
 fi
 [[ "$before" == "$(git -C "$WORK" rev-parse HEAD)" ]]
+
+# A minor bump publishes the next minor version tag.
+printf 'minor-bump\n' > "$SOURCES/obsidian-learning/value.txt"
+(cd "$WORK" && bash scripts/update-skills.sh --bump minor obsidian-learning)
+after="$(git -C "$WORK" rev-parse HEAD)"
+[[ "$after" == "$(git --git-dir="$REMOTE" rev-parse refs/heads/main)" ]]
+[[ "$(git -C "$WORK" rev-parse 'v0.1.0^{commit}')" == "$after" ]]
+[[ "$(git --git-dir="$REMOTE" rev-parse 'refs/tags/v0.1.0^{commit}')" == "$after" ]]
+
+# An explicit --tag pins the released version, and later default bumps continue from it.
+printf 'pinned-tag\n' > "$SOURCES/writing-technical-reports/value.txt"
+(cd "$WORK" && bash scripts/update-skills.sh --tag v5.0.0 writing-technical-reports)
+after="$(git -C "$WORK" rev-parse HEAD)"
+[[ "$(git -C "$WORK" rev-parse 'v5.0.0^{commit}')" == "$after" ]]
+[[ "$(git --git-dir="$REMOTE" rev-parse 'refs/tags/v5.0.0^{commit}')" == "$after" ]]
+printf 'after-pin-bump\n' > "$SOURCES/workplane/value.txt"
+(cd "$WORK" && bash scripts/update-skills.sh workplane)
+after="$(git -C "$WORK" rev-parse HEAD)"
+[[ "$(git -C "$WORK" rev-parse 'v5.0.1^{commit}')" == "$after" ]]
+
+# --no-tag publishes the commit without creating a tag.
+printf 'no-tag\n' > "$SOURCES/explain-with-diagrams/value.txt"
+tags_before="$(git --git-dir="$REMOTE" tag --list | LC_ALL=C sort)"
+(cd "$WORK" && bash scripts/update-skills.sh --no-tag explain-with-diagrams)
+after="$(git -C "$WORK" rev-parse HEAD)"
+[[ "$after" == "$(git --git-dir="$REMOTE" rev-parse refs/heads/main)" ]]
+[[ "$tags_before" == "$(git --git-dir="$REMOTE" tag --list | LC_ALL=C sort)" ]]
+
+# Reusing an existing tag is rejected before any source is imported.
+printf 'collision-candidate\n' > "$SOURCES/project-tracker/value.txt"
+bundled_before="$(cat "$WORK/skills/project-tracker/value.txt")"
+before="$(git -C "$WORK" rev-parse HEAD)"
+if (cd "$WORK" && bash scripts/update-skills.sh --tag v5.0.0 project-tracker); then
+  echo 'existing tag unexpectedly reused' >&2
+  exit 1
+fi
+[[ "$before" == "$(git -C "$WORK" rev-parse HEAD)" ]]
+[[ "$bundled_before" == "$(cat "$WORK/skills/project-tracker/value.txt")" ]]
+
+# Malformed or conflicting tag requests never import or commit.
+for bad_tag in v1.2 1.2.3 vabc; do
+  if (cd "$WORK" && bash scripts/update-skills.sh --tag "$bad_tag" project-tracker); then
+    echo "malformed tag $bad_tag unexpectedly accepted" >&2
+    exit 1
+  fi
+done
+if (cd "$WORK" && bash scripts/update-skills.sh --no-tag --tag v9.9.9 project-tracker); then
+  echo 'conflicting tag options unexpectedly accepted' >&2
+  exit 1
+fi
+if (cd "$WORK" && bash scripts/update-skills.sh --bump sideways project-tracker); then
+  echo 'invalid bump level unexpectedly accepted' >&2
+  exit 1
+fi
+[[ "$before" == "$(git -C "$WORK" rev-parse HEAD)" ]]
+[[ "$bundled_before" == "$(cat "$WORK/skills/project-tracker/value.txt")" ]]
+
+# Every published tag points at a commit on the remote main branch.
+git --git-dir="$REMOTE" fetch --quiet . main:refs/remotes/origin/main
+for tag in v0.0.1 v0.0.2 v0.1.0 v5.0.0 v5.0.1; do
+  git --git-dir="$REMOTE" merge-base --is-ancestor "refs/tags/$tag^{commit}" refs/heads/main
+  [[ "$(git -C "$WORK" cat-file -t "$tag")" == 'tag' ]]
+done
 
 printf 'update behavior is valid\n'

@@ -121,11 +121,21 @@ from those source repositories, never from a potentially stale installed copy.
 
 No LLM is involved:
 
-
 ```bash
-npm run update-skills
-npm run update-skills -- obsidian-learning
-npm run update-skills -- writing-technical-reports
+npm run update-skills                              # all skills, next patch tag
+npm run update-skills -- obsidian-learning         # one skill, still tagged
+npm run update-skills -- --bump minor workplane    # next minor tag (v0.1.0)
+npm run update-skills -- --tag v1.0.0              # pin the released version
+npm run update-skills -- --no-tag                  # commit without a version tag
 ```
 
-A valid update imports current local files and the Project Tracker restoration payload, runs all checks, commits the requested skill snapshots, and pushes `origin/main`. Safety checks stop on a dirty repository, wrong branch, failed validation, or remote drift.
+A valid update imports current local files and the Project Tracker restoration
+payload, runs all checks, commits the requested skill snapshots, and publishes the
+commit to `origin/main` together with a new annotated version tag in one atomic
+push. The tag defaults to a patch bump of the highest existing `vX.Y.Z` tag, or of
+`package.json` when no tag exists yet; `--bump minor|major` moves the other digit,
+and `--tag vX.Y.Z` sets the version exactly. When nothing was imported, the run
+exits without a commit or a tag. Safety checks stop on a dirty repository, wrong
+branch, failed validation, remote drift, or a malformed/already published tag.
+`package.json` keeps its placeholder version: the git tag is the released version,
+so consumers can pin one with `pi install git:github.com/Vangalle/mySkills@v1.0.0`.

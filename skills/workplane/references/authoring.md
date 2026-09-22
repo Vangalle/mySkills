@@ -2,13 +2,16 @@
 
 ## 总框架
 
-`WORKPLANE.json` 只描述**当前功能结构**。它有两类关系，必须分开：
+`WORKPLANE.json` 只描述**当前功能结构**。Work Unit 根据当前功能、边界、接口、
+依赖和锚点定义，不以 Tracker 是否已有 Design 为前提。它有两类基础关系，必须分开：
 
 - 包含关系：用 `parent`，形成 项目根 → 功能分组 → Work Unit 的层级；
 - 依赖关系：用 `edges.dependsOn`，表示运行或使用上的先后。
 
-Design 与 Work Unit 的关系不在 Work Unit 里声明，而是单独放在 `designImpacts`，
-形成多对多桥接。这样一张图回答“现在由哪些功能组成”，另一张图回答“历史设计改动了哪些功能”。
+`designImpacts` 是可选的第三类关系。它不在 Work Unit 里声明，只在 Tracker 已有
+Design 且影响关系明确时形成多对多桥接。这样一张图回答“现在由哪些功能组成”，
+另一张图回答“已有历史设计改动了哪些功能”。没有 Design 时保持空数组，不影响
+Work Unit 图成立。
 
 ## 顶层字段
 
@@ -17,9 +20,7 @@ Design 与 Work Unit 的关系不在 Work Unit 里声明，而是单独放在 `d
   "schemaVersion": 1,
   "groups": [{ "id": "goals", "title": "目标与设计" }],
   "units": [],
-  "designImpacts": [
-    { "goalId": "readonly-goals", "designId": "readonly-goals-design", "unitIds": ["goal-lineage"] }
-  ],
+  "designImpacts": [],
   "glossary": []
 }
 ```
@@ -57,9 +58,18 @@ Design 与 Work Unit 的关系不在 Work Unit 里声明，而是单独放在 `d
 - 完成标准一条一个要点，不要一句话塞多个交付点。
 - 关系只能显式声明：不要指望从路径、锚点或名字自动推断依赖或设计影响。
 
+## 零 Design 与可选映射
+
+- Tracker 快照没有 Goal/Design 时，`designImpacts` 必须保持 `[]`；
+- 不要为了建立 Work Unit 而创建或补造 Design；
+- 不从设计文档、Progress、路径、名称、Git 顺序或代码锚点猜测影响关系；
+- 将来已有 Design 需要桥接时，再把明确且经用户审阅的映射加入数组；
+- 未填写映射不报错；已填写但引用未知 Goal、Design 或 Work Unit 才报错。
+
 ## 修改流程
 
-1. 先出提案（可编辑 `WORKPLANE.json` 或生成 preview）；
-2. 向用户展示会影响哪些模块并等待确认；
-3. 确认后再写入并由 Tracker 安全落地；
-4. 重新运行 `workplane validate` 和 `workplane render`。
+1. 根据当前功能结构先提出 Work Unit、包含关系和依赖；
+2. 若存在明确的历史 Design 影响，再提出可选映射；
+3. 向用户展示会影响哪些模块并等待确认；
+4. 确认后再写入并由 Tracker 安全落地；
+5. 重新运行 `workplane validate` 和 `workplane render`。

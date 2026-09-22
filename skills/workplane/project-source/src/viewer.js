@@ -613,10 +613,9 @@
   }
   function composePrompt(where, question) {
     return [
-      "我在看项目工作视图时有一条提问/反馈。",
+      "我在看基于 WORKPLANE.json 渲染得到的项目工作视图时有一条提问/反馈。",
       `位置：${where}`,
       `问题：${question || "这里是什么意思？"}`,
-      "请用普通话解释它在本项目里具体指什么；如果这条信息本身不对，请直接说明应该改成什么。",
     ].join("\n");
   }
   let askWhere = "";

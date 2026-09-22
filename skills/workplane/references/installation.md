@@ -13,10 +13,12 @@ node scripts/install-skill.mjs
 默认目标：
 
 - skill：`~/.pi/agent/skills/workplane`
+- Pi 输入扩展：`~/.pi/agent/extensions/workplane/index.ts`
 - launcher：`~/.local/bin/workplane`
 
-可用 `--skills-dir <dir>`、`--bin-dir <dir>` 指定其它位置。安装后会写入来源与文件
-摘要标记（`.workplane-source.json`）；重复安装是幂等的。
+可用 `--skills-dir <dir>`、`--extensions-dir <dir>`、`--bin-dir <dir>` 指定其它位置；
+extensions 默认是 skills 目录的同级 `extensions`。安装器先暂存三项并检查来源与摘要，再
+一起提交或回滚；重复安装是幂等的。
 
 安装后可运行：
 
@@ -40,11 +42,13 @@ node scripts/install-skill.mjs --uninstall
 ```bash
 node ~/.local/share/workplane/source/scripts/install-skill.mjs --uninstall \
   --skills-dir ~/.local/share/workplane/installed-skills \
+  --extensions-dir ~/.pi/agent/extensions \
   --bin-dir ~/.local/bin
 ```
 
-只删除 Workplane 自己拥有、且自安装后未被修改过的 skill 和 launcher。若目标来自其它
-来源、被符号链接替换、或文件被编辑过，安装器会拒绝覆盖或删除并报错，不做部分修改。
+只删除 Workplane 自己拥有、且自安装后未被修改过的 skill、launcher 和 Pi extension。
+若任一目标来自其它来源、被符号链接替换、包含额外文件或自安装后被编辑，安装器会在移动
+任何目标前拒绝覆盖或删除，不做部分修改。
 
 ## 与 Project Tracker 的关系
 
@@ -52,6 +56,14 @@ node ~/.local/share/workplane/source/scripts/install-skill.mjs --uninstall \
 - 卸载 Workplane 不影响 Tracker；
 - 卸载 Tracker 不会删除独立安装的 Workplane；
 - Tracker 未安装 Workplane 时仍可完整工作。
+
+## Pi 硬入口
+
+Pi extension 在技能展开前拦截 `/skill:workplane`，运行只读 `workplane inspect`，然后
+显示三个固定入口。预检不会创建、修复或渲染项目；数字选择绑定本次项目和会话。可用
+`/workplane-cancel` 取消正在进行或排队的预检。安装、升级或卸载后需 `/reload` 或新会话。
+
+扩展由 Workplane 自己安装和卸载；它不会安装、覆盖或删除 Project Tracker extension。
 
 ## 与 Tracker 的快照对接
 

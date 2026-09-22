@@ -13,6 +13,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { PluginRequestSchema, PROTOCOL_VERSION } from "./contracts.mjs";
 import { buildPlane } from "./build.mjs";
+import { inspectProject } from "./inspect.mjs";
 import { renderHtml, renderMermaid } from "./render.mjs";
 
 const MAX_STDIN = 10 * 1024 * 1024;
@@ -21,12 +22,14 @@ const USAGE = `workplane — Work Unit graph and Project Tracker bridge
 
 Usage:
   workplane plugin
+  workplane inspect [project-root] --request-id <uuid>
   workplane validate <WORKPLANE.json> --snapshot <snapshot.json>
   workplane render <WORKPLANE.json> --snapshot <snapshot.json> --out <dir>
   workplane --help
 
 Commands:
   plugin    Read one versioned JSON request on stdin, write one JSON response.
+  inspect   Read WORKPLANE.json state and emit a bounded project receipt; writes nothing.
   validate  Check a definition against a Tracker snapshot; writes nothing.
   render    Write workplane.json, workplane.mmd and workplane.html to --out.
 `;
@@ -98,6 +101,16 @@ async function loadInputs(flags, positional) {
   const definition = JSON.parse(await readFile(definitionFile, "utf8"));
   const tracker = JSON.parse(await readFile(snapshotFile, "utf8"));
   return { definition, tracker };
+}
+
+async function cmdInspect(flags, positional) {
+  const requestId = flags["request-id"];
+  if (!requestId || typeof requestId !== "string") {
+    throw new Error("inspect requires --request-id <uuid>");
+  }
+  const receipt = await inspectProject(positional[0] ?? process.cwd(), { requestId });
+  process.stdout.write(`${JSON.stringify(receipt)}\n`);
+  process.exitCode = 0;
 }
 
 async function cmdPlugin() {
@@ -205,6 +218,7 @@ async function main() {
     return;
   }
   if (command === "plugin") return cmdPlugin();
+  if (command === "inspect") return cmdInspect(flags, positional);
   if (command === "validate") return cmdValidate(flags, positional);
   if (command === "render") return cmdRender(flags, positional);
   process.stderr.write(`unknown command: ${command}\n${USAGE}`);

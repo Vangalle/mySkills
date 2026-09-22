@@ -16,6 +16,26 @@ import { z } from "zod";
 export const PROTOCOL_VERSION = "workplane.plugin/v1";
 export const WORKPLANE_API_VERSION = "workplane/v1";
 
+export const InspectReceiptSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    requestId: z.string().uuid(),
+    status: z.enum(["missing", "ready", "needs_repair"]),
+    project: z.object({ root: z.string().min(1), name: z.string().min(1) }).strict(),
+    definition: z
+      .object({
+        path: z.string().min(1),
+        exists: z.boolean(),
+        sha256: z.string().length(64).regex(/^[a-f0-9]+$/).nullable(),
+      })
+      .strict(),
+    preparedAt: z.string().datetime(),
+    diagnostics: z
+      .array(z.object({ path: z.string(), message: z.string().max(500) }).strict())
+      .max(20),
+  })
+  .strict();
+
 export const OPERATIONS = ["inspect", "change", "verify", "record"];
 /** capability = user-visible feature · interface = contract/entry · support = infrastructure */
 export const UNIT_KINDS = ["capability", "interface", "support"];

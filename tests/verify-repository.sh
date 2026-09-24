@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS="$ROOT/skills"
-EXPECTED=$'explain-with-diagrams\nobsidian-learning\nproject-tracker\nworkplane\nwriting-technical-reports'
+EXPECTED=$'explain-with-diagrams\nobsidian-learning\nproject-tracker\nrefactoring-by-boundaries\nworkplane\nwriting-technical-reports'
 
 [[ -d "$SKILLS" ]] || { echo "missing skills directory" >&2; exit 1; }
 ACTUAL="$(find "$SKILLS" -mindepth 1 -maxdepth 1 -type d \
@@ -13,7 +13,7 @@ ACTUAL="$(find "$SKILLS" -mindepth 1 -maxdepth 1 -type d \
   exit 1
 }
 
-for skill in explain-with-diagrams project-tracker workplane obsidian-learning writing-technical-reports; do
+for skill in explain-with-diagrams project-tracker refactoring-by-boundaries workplane obsidian-learning writing-technical-reports; do
   file="$SKILLS/$skill/SKILL.md"
   [[ -f "$file" ]] || { echo "missing $file" >&2; exit 1; }
   grep -q "^name: $skill$" "$file" || {

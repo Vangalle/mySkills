@@ -1,12 +1,13 @@
 # mySkills
 
-A public bundle of five independently maintained Agent Skills for Pi:
+A public bundle of six Agent Skills for Pi:
 
 | Skill | Purpose |
 | --- | --- |
 | `explain-with-diagrams` | Make consequential task and system interpretations inspectable with Mermaid diagrams. |
 | `project-tracker` | Manage project goals, design history, progress, verification evidence, and status. |
 | `workplane` | Define and render an optional Work Unit graph connected to Tracker Designs. |
+| `refactoring-by-boundaries` | Refactor existing code without losing behavior or adding unnecessary layers. |
 | `obsidian-learning` | Support structured learning and note editing in Obsidian vaults. |
 | `writing-technical-reports` | Write rigorous Chinese technical and scientific reports from supplied material. |
 
@@ -114,10 +115,10 @@ that project's root.
 
 ## Maintainer update
 
-The local skill projects remain independent sources of truth. This repository only imports copies and never modifies those sources. Whenever `project-tracker` or `workplane` is selected, its required rebuild files
+Five skills retain independent local sources of truth; this repository imports their copies without modifying the sources. `refactoring-by-boundaries` is maintained directly in `skills/refactoring-by-boundaries/SKILL.md` and is not replaced by `update-skills`. Whenever `project-tracker` or `workplane` is selected, its required rebuild files
 are imported automatically from `$HOME/Projects/project-tracker/project-tracker`
-or `$HOME/Projects/project-tracker/workplane` respectively. Skill text is imported
-from those source repositories, never from a potentially stale installed copy.
+or `$HOME/Projects/project-tracker/workplane` respectively. Imported skill text comes
+from its local source, never from a potentially stale installed copy.
 
 No LLM is involved:
 

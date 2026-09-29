@@ -1,6 +1,6 @@
 # mySkills
 
-A public bundle of six Agent Skills for Pi:
+A public Pi bundle of six original Agent Skills plus the 14-skill Superpowers suite:
 
 | Skill | Purpose |
 | --- | --- |
@@ -10,6 +10,15 @@ A public bundle of six Agent Skills for Pi:
 | `refactoring-by-boundaries` | Refactor existing code without losing behavior or adding unnecessary layers. |
 | `obsidian-learning` | Support structured learning and note editing in Obsidian vaults. |
 | `writing-technical-reports` | Write rigorous Chinese technical and scientific reports from supplied material. |
+| Superpowers (14 skills) | Design, plan, implement, debug, review, and verify software changes. |
+
+The Superpowers files are a self-contained snapshot of the locally modified
+[obra/superpowers](https://github.com/obra/superpowers) v6.4.1 suite (local
+commit `7ed3ebe`). See [third-party notices](THIRD_PARTY_NOTICES.md) for the
+upstream MIT license and attribution. Each Superpowers skill also carries its
+own `LICENSE` so it can be installed individually. The upstream
+`using-superpowers` skill was removed in this local version; the remaining 14
+skills are bundled with their supporting files.
 
 Review skill contents before installation: skills can instruct an agent to run commands with your permissions.
 
@@ -24,6 +33,10 @@ pi install git:github.com/Vangalle/mySkills
 Run `pi update --extension git:github.com/Vangalle/mySkills` after a new release.
 The package loads all Skill documents; Project Tracker and Workplane have separate
 runtime restore steps below. Run `/reload` or start a new Pi session after changes.
+If Superpowers is already installed elsewhere (for example via
+`~/.agents/skills/superpowers`), Pi may report duplicate skill names and use
+whichever location it discovered first. Installing this package does not change
+or remove that existing path.
 
 Alternatively, list skills through the cross-agent installer:
 
@@ -115,10 +128,18 @@ that project's root.
 
 ## Maintainer update
 
-Five skills retain independent local sources of truth; this repository imports their copies without modifying the sources. `refactoring-by-boundaries` is maintained directly in `skills/refactoring-by-boundaries/SKILL.md` and is not replaced by `update-skills`. Whenever `project-tracker` or `workplane` is selected, its required rebuild files
-are imported automatically from `$HOME/Projects/project-tracker/project-tracker`
-or `$HOME/Projects/project-tracker/workplane` respectively. Imported skill text comes
-from its local source, never from a potentially stale installed copy.
+Five original skills retain independent local sources of truth; this repository
+imports their copies without modifying the sources. `refactoring-by-boundaries`
+is maintained directly in `skills/refactoring-by-boundaries/SKILL.md` and is not
+replaced by `update-skills`. The 14 Superpowers skill directories are a committed
+snapshot from `~/.codex/superpowers-personal/skills` (commit `7ed3ebe`);
+`update-skills` does not refresh or replace them. To publish newer Superpowers
+changes, review and copy the tracked skill files from that source, update the
+provenance in `THIRD_PARTY_NOTICES.md`, run `npm test`, then commit and push.
+Whenever `project-tracker` or `workplane` is selected, its required rebuild
+files are imported automatically from `$HOME/Projects/project-tracker/project-tracker`
+or `$HOME/Projects/project-tracker/workplane` respectively. Imported skill text
+comes from its local source, never from a potentially stale installed copy.
 
 No LLM is involved:
 

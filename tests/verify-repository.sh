@@ -3,7 +3,12 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS="$ROOT/skills"
-EXPECTED=$'explain-with-diagrams\nobsidian-learning\nproject-tracker\nrefactoring-by-boundaries\nworkplane\nwriting-technical-reports'
+SUPERPOWERS=(brainstorming diagnosing-superpowers dispatching-parallel-agents \
+  executing-plans finishing-a-development-branch receiving-code-review \
+  requesting-code-review subagent-driven-development systematic-debugging \
+  test-driven-development using-git-worktrees verification-before-completion \
+  writing-plans writing-skills)
+EXPECTED=$'brainstorming\ndiagnosing-superpowers\ndispatching-parallel-agents\nexecuting-plans\nexplain-with-diagrams\nfinishing-a-development-branch\nobsidian-learning\nproject-tracker\nreceiving-code-review\nrefactoring-by-boundaries\nrequesting-code-review\nsubagent-driven-development\nsystematic-debugging\ntest-driven-development\nusing-git-worktrees\nverification-before-completion\nworkplane\nwriting-plans\nwriting-skills\nwriting-technical-reports'
 
 [[ -d "$SKILLS" ]] || { echo "missing skills directory" >&2; exit 1; }
 ACTUAL="$(find "$SKILLS" -mindepth 1 -maxdepth 1 -type d \
@@ -13,7 +18,7 @@ ACTUAL="$(find "$SKILLS" -mindepth 1 -maxdepth 1 -type d \
   exit 1
 }
 
-for skill in explain-with-diagrams project-tracker refactoring-by-boundaries workplane obsidian-learning writing-technical-reports; do
+for skill in "${SUPERPOWERS[@]}" explain-with-diagrams project-tracker refactoring-by-boundaries workplane obsidian-learning writing-technical-reports; do
   file="$SKILLS/$skill/SKILL.md"
   [[ -f "$file" ]] || { echo "missing $file" >&2; exit 1; }
   grep -q "^name: $skill$" "$file" || {
@@ -26,6 +31,17 @@ for skill in explain-with-diagrams project-tracker refactoring-by-boundaries wor
   }
 done
 
+[[ -f "$ROOT/THIRD_PARTY_NOTICES.md" ]]
+for skill in "${SUPERPOWERS[@]}"; do
+  [[ -f "$SKILLS/$skill/LICENSE" ]] || {
+    echo "missing Superpowers license: $skill" >&2
+    exit 1
+  }
+done
+[[ -f "$SKILLS/brainstorming/scripts/server.cjs" ]]
+[[ -f "$SKILLS/subagent-driven-development/scripts/sdd-workspace" ]]
+[[ -f "$SKILLS/writing-skills/testing-skills-with-subagents.md" ]]
+[[ ! -e "$SKILLS/using-superpowers" ]]
 [[ -f "$SKILLS/explain-with-diagrams/agents/openai.yaml" ]]
 [[ -f "$SKILLS/project-tracker/scripts/reporting-policy.mjs" ]]
 [[ -x "$SKILLS/project-tracker/scripts/restore-project-tracker.sh" ]]

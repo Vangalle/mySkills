@@ -8,7 +8,7 @@ SUPERPOWERS=(brainstorming diagnosing-superpowers dispatching-parallel-agents \
   requesting-code-review subagent-driven-development systematic-debugging \
   test-driven-development using-git-worktrees verification-before-completion \
   writing-plans writing-skills)
-EXPECTED=$'brainstorming\ndefining-subproject-context\ndiagnosing-superpowers\ndispatching-parallel-agents\nexecuting-plans\nexplain-with-diagrams\nfinishing-a-development-branch\nobsidian-learning\nproject-tracker\nreceiving-code-review\nrefactoring-by-boundaries\nrequesting-code-review\nsubagent-driven-development\nsystematic-debugging\ntest-driven-development\nusing-git-worktrees\nverification-before-completion\nworkplane\nwriting-plans\nwriting-skills\nwriting-technical-reports'
+EXPECTED=$'brainstorming\ndefining-subproject-context\ndiagnosing-superpowers\ndispatching-parallel-agents\nexecuting-plans\nexplain-with-diagrams\nfinishing-a-development-branch\nfinishing-work\nobsidian-learning\nproject-tracker\nreceiving-code-review\nrefactoring-by-boundaries\nrequesting-code-review\nsubagent-driven-development\nsystematic-debugging\ntest-driven-development\nusing-git-worktrees\nverification-before-completion\nworkplane\nwriting-plans\nwriting-skills\nwriting-technical-reports'
 
 [[ -d "$SKILLS" ]] || { echo "missing skills directory" >&2; exit 1; }
 ACTUAL="$(find "$SKILLS" -mindepth 1 -maxdepth 1 -type d \
@@ -18,7 +18,7 @@ ACTUAL="$(find "$SKILLS" -mindepth 1 -maxdepth 1 -type d \
   exit 1
 }
 
-for skill in "${SUPERPOWERS[@]}" defining-subproject-context explain-with-diagrams project-tracker refactoring-by-boundaries workplane obsidian-learning writing-technical-reports; do
+for skill in "${SUPERPOWERS[@]}" defining-subproject-context explain-with-diagrams finishing-work project-tracker refactoring-by-boundaries workplane obsidian-learning writing-technical-reports; do
   file="$SKILLS/$skill/SKILL.md"
   [[ -f "$file" ]] || { echo "missing $file" >&2; exit 1; }
   grep -q "^name: $skill$" "$file" || {

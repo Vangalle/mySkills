@@ -1,11 +1,12 @@
 # mySkills
 
-A public Pi bundle of seven original Agent Skills plus the 14-skill Superpowers suite:
+A public Pi bundle of eight original Agent Skills plus the 14-skill Superpowers suite:
 
 | Skill | Purpose |
 | --- | --- |
 | `defining-subproject-context` | Preserve project identity when preparing entry/handoff materials for new independent projects; excludes ordinary task handoffs. |
 | `explain-with-diagrams` | Make consequential task and system interpretations inspectable with Mermaid diagrams. |
+| `finishing-work` | Check for worthwhile authorized next steps before ending a Pi execution task, without looping indefinitely. |
 | `project-tracker` | Manage project goals, design history, progress, verification evidence, and status. |
 | `workplane` | Define and render an optional Work Unit graph connected to Tracker Designs. |
 | `refactoring-by-boundaries` | Refactor existing code without losing behavior or adding unnecessary layers. |
@@ -130,9 +131,10 @@ that project's root.
 ## Maintainer update
 
 Five original skills retain independent local sources of truth; this repository
-imports their copies without modifying the sources. `refactoring-by-boundaries`
-and `defining-subproject-context` are maintained directly in their respective
-`skills/<name>/SKILL.md` files and are not replaced by `update-skills`. The 14 Superpowers skill directories are a committed
+imports their copies without modifying the sources. `refactoring-by-boundaries`,
+`defining-subproject-context`, and `finishing-work` are maintained directly
+in their respective `skills/<name>/SKILL.md` files and are not replaced by
+`update-skills`. The 14 Superpowers skill directories are a committed
 snapshot from `~/.codex/superpowers-personal/skills` (commit `7ed3ebe`);
 `update-skills` does not refresh or replace them. To publish newer Superpowers
 changes, review and copy the tracked skill files from that source, update the

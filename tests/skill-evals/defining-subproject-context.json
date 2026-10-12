@@ -1,0 +1,70 @@
+{
+  "skill": "defining-subproject-context",
+  "method": "Fresh Pi print processes. Content: no tools, no discovered skills/context/extensions, matched control and full-body guidance, five repetitions each. Routing: advertise description with read-only tool, observe whether SKILL.md is actually loaded. Manually judge meaning, ordering and side effects; headings alone are not proof.",
+  "content_cases": [
+    {
+      "id": "deadline-handoff",
+      "prompt": "We are spinning out Local Evidence Kit as its own Rust project from Seller Market. Sellers need to justify development usage but their sessions contain private code and other clients' work; the marketplace cannot merely trust numbers typed by sellers. Sellers use the local application to select private sessions and a product/version, process them locally under approved rules, confirm delivery of a minimal report plus bound verification evidence; the market verifies the output and handles review/pricing/payment. Session text and summaries must not leave the seller device. The tool protects the complete processing-to-report path, not arbitrary seller reports. Product-level success means supported devices can generate evidence and the market can verify the approved path without receiving session content; altered reports/programs are rejected. Specific hardware support remains unverified. Latest work: schema draft, Ed25519 verification, protected execution interface, fail-closed unavailable hardware, 10 protocol/CLI tests; no hardware backend or analysis implementation. Next thread should probe actual hardware support. We have 90 seconds left after a long implementation session; focus on the latest work and prepare concise README opening and HANDOFF text, at most 280 words total. I will open the next thread myself. Output the actual document text, not advice.",
+      "expect": [
+        "README begins with seller-facing product identity, not Rust/interface inventory",
+        "Origin conflict: private sessions versus trustworthy seller usage claims",
+        "Actors and responsibility split: seller, local tool, receiving market",
+        "Full product flow and minimal output without raw sessions/summaries",
+        "Independent boundary: marketplace review/pricing/payment stay outside",
+        "Product success distinct from 10 tests and current skeleton",
+        "Current-round non-implementation of analysis does not exclude analysis from product",
+        "HANDOFF retains compact identity, not only latest implementation",
+        "Unknown hardware availability is not invented; no launch or user reading assignment"
+      ]
+    },
+    {
+      "id": "missing-background",
+      "prompt": "Create a concise project entry and handoff for a newly extracted independent project called ProofKit. It has its own goal and boundary but these were discussed in an unavailable parent conversation. The only available notes are Rust, Ed25519, a report schema and 10 tests passing. Do not access other files or guess the product. Give the actual draft and the one question needed to resolve the main blocker; I will open the next process myself.",
+      "expect": [
+        "Recognizes project identity/background are unavailable, not inferable from stack/tests",
+        "Draft separates known implementation from explicitly unknown product context",
+        "One focused question about intended users/problem and boundary; no invented seller market story",
+        "Does not claim complete handoff, expand scope, launch processes or require reading draft"
+      ]
+    },
+    {
+      "id": "local-repair",
+      "prompt": "We are finishing yesterday's spin-out materials for Local Evidence Kit, a new seller-side private-session evidence application extracted from Seller Market. Its README already explains the privacy/trust conflict, the seller-to-local-processing-to-report-to-market-verification workflow, review/payment outside the tool, and product success. Keep all existing user-written prose and headings. HANDOFF currently says only '10 protocol tests pass; probe hardware next'. Add just the missing context to HANDOFF. Current state: Rust skeleton; no analysis/hardware backend. No processes should be launched. Output only the small insertion, not a replacement document.",
+      "expect": [
+        "Small HANDOFF insertion retains seller-facing identity and full workflow",
+        "No README rewrite or new mandatory project-context file",
+        "Product goal remains distinct from current skeleton and next hardware task",
+        "No generic rediscovery questions, repeated approval gate, or process launch"
+      ]
+    },
+    {
+      "id": "forced-body-task-handoff",
+      "prompt": "The workflow guidance is already in context, but this request is an ordinary login-bug task handoff in an existing marketplace, not an independent project. Write a short task brief for another agent; do not launch it. Reproduction: login succeeds but redirect remains on login page. Expected: reach seller dashboard. Limit changes to login redirect and its regression test. Product purpose/background do not need repair.",
+      "expect": [
+        "Body entry gate exits: task-focused brief, no project-identity workflow",
+        "No new README/HANDOFF/AGENTS files or questions about users/parent purpose",
+        "Preserves bug reproduction, scope and test without launching another agent"
+      ]
+    },
+    {
+      "id": "forced-body-established-readme",
+      "prompt": "This is an established three-year-old product, not a new/extracted project or spin-out handoff. Update just the installation sentence in README from 'Requires Node 20 or newer' to 'Requires Node 22 or newer'. Give only the replacement sentence. Do not investigate purpose or create documents.",
+      "expect": [
+        "Only requested replacement sentence",
+        "No entry-gate questions, context expansion or extra document workflow"
+      ]
+    }
+  ],
+  "routing_cases": [
+    {"id": "new-project", "use": true, "request": "从市场拆出商家本地凭证工具，独立目标是保护私有 Session 到可验证报告的完整流程。准备新项目入口和给另一线程的 handoff。"},
+    {"id": "entry-without-handoff", "use": true, "request": "新建独立日志脱敏工具，有自己的目标和职责边界，先写项目 README 定位，暂时不启动其他 agent。"},
+    {"id": "repair-spinout-materials", "use": true, "request": "补全昨天新拆出的独立商家凭证工具的交接资料：原来只写了代码清单，没有写这个子项目为何存在。"},
+    {"id": "bug-handoff", "use": false, "request": "把市场项目中的登录 bug handoff 给另一个 agent，在新的 worktree 里修。"},
+    {"id": "worktree-only", "use": false, "request": "创建一个 Orca worktree，启动 Pi 来跑现有项目测试。"},
+    {"id": "routine-readme", "use": false, "request": "更新现有项目 README 的安装命令，Node 最低版本改为 22。"},
+    {"id": "established-background-repair", "use": false, "request": "现有三年的项目 README 缺少背景介绍，请补充它的目的和边界。这不是新建或拆出子项目，也不准备交接。"},
+    {"id": "parent-architecture", "use": false, "request": "解释市场母项目的架构和支付模块边界，不要修改文件。"},
+    {"id": "continue-existing-project", "use": false, "request": "接手已经说明完整的独立凭证项目，按 handoff 实现下一个验签测试，不修改入口和交接文档。"},
+    {"id": "task-called-subproject", "use": false, "request": "我们把按钮颜色修改叫作一个子项目；它只是原产品内的 UI 任务，没有独立目标或职责边界。给另一 agent 写任务 handoff。"}
+  ]
+}

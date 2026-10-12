@@ -1,9 +1,10 @@
 # mySkills
 
-A public Pi bundle of six original Agent Skills plus the 14-skill Superpowers suite:
+A public Pi bundle of seven original Agent Skills plus the 14-skill Superpowers suite:
 
 | Skill | Purpose |
 | --- | --- |
+| `defining-subproject-context` | Preserve project identity when preparing entry/handoff materials for new independent projects; excludes ordinary task handoffs. |
 | `explain-with-diagrams` | Make consequential task and system interpretations inspectable with Mermaid diagrams. |
 | `project-tracker` | Manage project goals, design history, progress, verification evidence, and status. |
 | `workplane` | Define and render an optional Work Unit graph connected to Tracker Designs. |
@@ -130,8 +131,8 @@ that project's root.
 
 Five original skills retain independent local sources of truth; this repository
 imports their copies without modifying the sources. `refactoring-by-boundaries`
-is maintained directly in `skills/refactoring-by-boundaries/SKILL.md` and is not
-replaced by `update-skills`. The 14 Superpowers skill directories are a committed
+and `defining-subproject-context` are maintained directly in their respective
+`skills/<name>/SKILL.md` files and are not replaced by `update-skills`. The 14 Superpowers skill directories are a committed
 snapshot from `~/.codex/superpowers-personal/skills` (commit `7ed3ebe`);
 `update-skills` does not refresh or replace them. To publish newer Superpowers
 changes, review and copy the tracked skill files from that source, update the

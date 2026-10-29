@@ -5,11 +5,11 @@
   "keywords": ["pi-package"],
   "pi": {
     "skills": ["./skills"],
-    "extensions": ["./extensions/finishing-work.ts"]
+    "extensions": ["./extensions/finishing-work.ts", "./extensions/model-collaboration.ts"]
   },
   "scripts": {
     "import-skills": "bash scripts/import-skills.sh",
     "update-skills": "bash scripts/update-skills.sh",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/test-finishing-work-extension.mjs && bash tests/verify-repository.sh && bash tests/test-import-skills.sh && bash tests/test-restore-project-tracker.sh && bash tests/test-restore-workplane.sh && bash tests/test-update-skills.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test tests/test-finishing-work-extension.mjs tests/test-model-collaboration-extension.mjs && bash tests/verify-repository.sh && bash tests/test-import-skills.sh && bash tests/test-restore-project-tracker.sh && bash tests/test-restore-workplane.sh && bash tests/test-update-skills.sh && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s skills/obsidian-learning/tests -p 'test_*.py'"
   }
 }

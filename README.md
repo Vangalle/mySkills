@@ -1,6 +1,6 @@
 # mySkills
 
-A public Pi bundle of eight original Agent Skills plus the 14-skill Superpowers suite:
+A public Pi bundle of nine original Agent Skills plus the 14-skill Superpowers suite:
 
 | Skill | Purpose |
 | --- | --- |
@@ -12,6 +12,7 @@ A public Pi bundle of eight original Agent Skills plus the 14-skill Superpowers 
 | `refactoring-by-boundaries` | Refactor existing code without losing behavior or adding unnecessary layers. |
 | `obsidian-learning` | Support structured learning and note editing in Obsidian vaults. |
 | `writing-technical-reports` | Write rigorous Chinese technical and scientific reports from supplied material. |
+| `writing-code-comments` | Write comments that add information the code cannot carry, and replace the rest with clearer code. |
 | Superpowers (14 skills) | Design, plan, implement, debug, review, and verify software changes. |
 
 The Superpowers files are a self-contained snapshot of the locally modified
@@ -132,10 +133,10 @@ that project's root.
 
 Five original skills retain independent local sources of truth; this repository
 imports their copies without modifying the sources. `refactoring-by-boundaries`,
-`defining-subproject-context`, and `finishing-work` are maintained directly
-in their respective `skills/<name>/SKILL.md` files and are not replaced by
-`update-skills`. The 14 Superpowers skill directories are a committed
-snapshot from `~/.codex/superpowers-personal/skills` (commit `7ed3ebe`);
+`defining-subproject-context`, `finishing-work`, and `writing-code-comments` are
+maintained directly in their respective `skills/<name>/SKILL.md` files and are
+not replaced by `update-skills`. The 14 Superpowers skill directories are a
+committed snapshot from `~/.codex/superpowers-personal/skills` (commit `7ed3ebe`);
 `update-skills` does not refresh or replace them. To publish newer Superpowers
 changes, review and copy the tracked skill files from that source, update the
 provenance in `THIRD_PARTY_NOTICES.md`, run `npm test`, then commit and push.
